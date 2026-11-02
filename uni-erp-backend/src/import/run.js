@@ -36,7 +36,7 @@ const csv = (rows, cols) => [cols.join(","), ...rows.map((r) => cols.map((c) => 
   console.log("\nNotes:");
   for (const n of result.report.notes) console.log("  - " + n);
   console.log(`\n${result.attention.length} students would not pass today's entry rules (listed by id in import-output/needs-attention.csv).`);
-  console.log(`${result.duplicateEnrollments.length} enrollment numbers were shared by two students; the second of each pair gets "-2" (import-output/duplicate-enrollments.csv).`);
+  console.log(`${result.duplicateEnrollments.length} enrollment numbers were shared by two students; the second student of each pair is given a new number in the normal format (import-output/duplicate-enrollments.csv).`);
 
   fs.writeFileSync(path.join(outDir, "needs-attention.csv"), csv(result.attention, ["sid", "enrollment_no", "issues"]));
   fs.writeFileSync(path.join(outDir, "duplicate-enrollments.csv"), csv(result.duplicateEnrollments, ["enrollment_no", "kept_sid", "renamed_sid", "new_enrollment_no"]));

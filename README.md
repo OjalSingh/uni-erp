@@ -42,7 +42,7 @@ npm run import-sql -- path/to/dump.sql --apply # imports into the database in MO
 - `import-output/needs-attention.csv` lists students that would not pass today's entry rules (for example a mobile number
   that is not 10 digits). They are imported as they are so nothing is lost; fix them as you go.
 - `import-output/duplicate-enrollments.csv` lists enrollment numbers that two students shared. The second student of each pair
-  gets `-2` added so numbers stay unique.
+  is given the next free number in the normal format (the old number is kept on the student as `legacyEnrollNo`).
 - Never commit the `.sql` file or `import-output/`; both contain personal data (they are git-ignored).
 - `npm run import-selftest -- path/to/dump.sql` checks the whole import against an in-memory fake database.
 

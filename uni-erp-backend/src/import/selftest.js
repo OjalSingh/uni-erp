@@ -87,6 +87,9 @@ const fakeDb = () => { const cols = {}; return { cols, col: (name) => (cols[name
   check("no dangling references", dangling === 0, String(dangling));
   const withForm = db.col("marks").docs.filter((m) => m.examForm !== undefined);
   check("marks with a form point at an existing form", withForm.every((m) => db.col("examforms").docs.some((f) => String(f._id) === String(m.examForm))));
+  const changed = db.col("students").docs.filter((x) => x.legacyEnrollNo !== undefined);
+  check("shared enrollment numbers were replaced by normal-format numbers", changed.length === 192 && changed.every((x) => /^\d{7}$/.test(x.enrollNo) && x.enrollNo !== x.legacyEnrollNo), `${changed.length} changed`);
+  check("no enrollment number carries a suffix", db.col("students").docs.every((x) => /^\d+$/.test(x.enrollNo)));
   check("no undefined/null leaks into stored documents", db.col("students").docs.every((s) => Object.values(s).every((v) => v !== undefined && v !== null)));
 
   // Second run must refuse, then --replace must reproduce the same result without changing existing passwords

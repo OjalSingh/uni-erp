@@ -134,6 +134,24 @@ function transform(data) {
   void acBySid;
   const students = [];
   const keepers = new Map(); // enrollment_no -> sid that keeps the number
+  // Numbers are "<2-digit session year><5-digit running number>". A student whose number is shared gets the next free one in their session's series.
+  const usedNumbers = new Set(data.student.map((r) => String(r.enrollment_no)));
+  const lastInSeries = new Map();
+  for (const r of data.student) {
+    const m = /^(\d{2})(\d{5})$/.exec(String(r.enrollment_no));
+    if (m) lastInSeries.set(m[1], Math.max(lastInSeries.get(m[1]) || 0, Number(m[2])));
+  }
+  const nextFreeNumber = (session) => {
+    const prefix = String(session || "").slice(2, 4);
+    if (!/^\d{2}$/.test(prefix)) throw new Error(`Cannot number a student with session "${session}"`);
+    let seq = (lastInSeries.get(prefix) || 0) + 1;
+    while (usedNumbers.has(prefix + String(seq).padStart(5, "0"))) seq++;
+    if (seq > 99999) throw new Error(`Enrollment number series ${prefix} is full`);
+    lastInSeries.set(prefix, seq);
+    const n = prefix + String(seq).padStart(5, "0");
+    usedNumbers.add(n);
+    return n;
+  };
   const referenced = new Set([...data.admitcard.map((a) => a.sid), ...data.marks.map((m) => m.student_id)]);
   const sortedStudents = [...data.student].sort((a, b) => (referenced.has(b.sid) - referenced.has(a.sid)) || a.sid - b.sid);
   for (const r of sortedStudents) {
@@ -142,9 +160,9 @@ function transform(data) {
     let legacyEnrollNo;
     if (keepers.has(r.enrollment_no)) {
       legacyEnrollNo = enrollNo;
-      enrollNo = `${enrollNo}-2`;
+      enrollNo = nextFreeNumber(r.stusession);
       duplicateEnrollments.push({ enrollment_no: r.enrollment_no, kept_sid: keepers.get(r.enrollment_no), renamed_sid: r.sid, new_enrollment_no: enrollNo });
-      issues.push("enrollment number shared with another student");
+      issues.push("enrollment number was shared with another student, so a new one was assigned");
     } else keepers.set(r.enrollment_no, r.sid);
 
     const mobile = digits(r.mobileno);

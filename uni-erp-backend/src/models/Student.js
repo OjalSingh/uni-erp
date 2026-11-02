@@ -47,7 +47,7 @@ const studentSchema = new mongoose.Schema(
     pinCode: { type: String, trim: true, match: [/^\d{6}$/, "Pin code must be 6 digits"] },
     image: String, // stored file path/URL
     legacyImage: String, // photo file name from the old system; the file itself must be copied separately
-    legacyEnrollNo: String, // set when an enrollment number was shared with another student and had to be changed
+    legacyEnrollNo: String, // the old number, kept when two students shared it and this one was given a new number
     qualifications: { type: [qualificationSchema], default: [] }, // up to 6 rows in the original form
     status: { type: String, enum: ["Active", "Inactive"], default: "Active" },
   },
