@@ -31,6 +31,26 @@ router.put("/schedules/:id", requireRole("admin"), (req, res) => {
   });
 });
 
+// ----- Admit cards: accepted forms with everything needed to print -----
+router.get("/admit-cards", async (req, res) => {
+  const { schedule, search = "" } = req.query;
+  if (!schedule) return res.status(400).json({ message: "Choose an exam schedule" });
+  const filter = { schedule, status: "Accepted", ...centerScope(req) };
+  if (search) {
+    const rx = new RegExp(escapeRegex(search), "i");
+    const ids = await Student.find({ ...centerScope(req), $or: [{ name: rx }, { enrollNo: rx }] }).select("_id");
+    filter.$or = [{ rollNo: rx }, { student: { $in: ids.map((s) => s._id) } }];
+  }
+  const items = await ExamForm.find(filter)
+    .sort({ rollNo: 1 })
+    .limit(200)
+    .populate("student", "enrollNo name fatherName dob gender image")
+    .populate("center", "code name")
+    .populate("course", "name code")
+    .populate("schedule", "examId examTerm year");
+  res.json(items);
+});
+
 // ----- Exam forms -----
 // Roll no. = 2-digit course code + 2-digit exam year + 4-digit running number within that course and year
 async function nextRollNo(course, schedule) {

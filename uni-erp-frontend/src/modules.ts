@@ -13,13 +13,13 @@ export const MODULES: ModuleDef[] = [
   { path: 'employees', label: 'Employee Details', note: 'Staff records', group: 'Admissions', built: true },
   { path: 'exam-form', label: 'Fill Exam Form', note: 'Enter students for an exam', group: 'Examinations', built: true },
   { path: 'marks', label: 'Mark Information', note: 'Record theory and practical marks', group: 'Examinations', built: true },
-  { path: 'admit-cards', label: 'Admit Card details', note: 'Admit cards for an exam', group: 'Examinations', built: false },
+  { path: 'admit-cards', label: 'Admit Card details', note: 'Admit cards for an exam', group: 'Examinations', built: true },
   { path: 'results', label: 'Publish Result', note: 'Release results', group: 'Examinations', built: true },
-  { path: 'certificates', label: 'Certificate Printing', note: 'Print certificates', group: 'Documents', built: false },
-  { path: 'id-cards', label: 'ID Card Printing', note: 'Print student ID cards', group: 'Documents', built: false },
+  { path: 'certificates', label: 'Certificate Printing', note: 'Print certificates', group: 'Documents', built: true },
+  { path: 'id-cards', label: 'ID Card Printing', note: 'Print student ID cards', group: 'Documents', built: true },
   { path: 'books', label: 'Book Allocated', note: 'Course books allocated', group: 'Resources', built: false },
   { path: 'stock', label: 'Stock Details', note: 'Stock records', group: 'Resources', built: false },
-  { path: 'change-password', label: 'Change Password', note: 'Update your login password', group: 'Account', built: false },
+  { path: 'change-password', label: 'Change Password', note: 'Update your login password', group: 'Account', built: true },
 ]
 
 export const GROUPS = ['Admissions', 'Examinations', 'Documents', 'Resources', 'Account']

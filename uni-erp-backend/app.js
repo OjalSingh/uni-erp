@@ -20,6 +20,7 @@ app.use("/api/employees", require("./src/routes/employees"));
 app.use("/api/exams", require("./src/routes/exams"));
 app.use("/api/marks", require("./src/routes/marks"));
 app.use("/api/results", require("./src/routes/results"));
+app.use("/api/certificates", require("./src/routes/certificates"));
 app.use("/api/uploads", require("./src/routes/uploads"));
 app.use("/uploads", express.static(UPLOAD_DIR));
 
