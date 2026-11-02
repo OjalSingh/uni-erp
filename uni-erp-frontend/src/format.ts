@@ -18,3 +18,5 @@ export interface Paged<T> {
   page: number
   pages: number
 }
+
+export const fmtMoney = (n: number) => '₹' + n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })

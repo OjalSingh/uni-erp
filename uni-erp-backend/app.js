@@ -21,6 +21,8 @@ app.use("/api/exams", require("./src/routes/exams"));
 app.use("/api/marks", require("./src/routes/marks"));
 app.use("/api/results", require("./src/routes/results"));
 app.use("/api/certificates", require("./src/routes/certificates"));
+app.use("/api/stock", require("./src/routes/stock"));
+app.use("/api/invoices", require("./src/routes/invoices"));
 app.use("/api/uploads", require("./src/routes/uploads"));
 app.use("/uploads", express.static(UPLOAD_DIR));
 

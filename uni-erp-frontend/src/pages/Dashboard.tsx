@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api.ts'
+import { useAuth } from '../auth.tsx'
 import { GROUPS, MODULES } from '../modules.ts'
 
 interface Stats {
@@ -9,6 +10,7 @@ interface Stats {
 }
 
 export default function Dashboard() {
+  const { user } = useAuth()
   const [stats, setStats] = useState<Stats | null>(null)
 
   useEffect(() => {
@@ -35,7 +37,7 @@ export default function Dashboard() {
           <section key={g}>
             <h2>{g}</h2>
             <ul>
-              {MODULES.filter((m) => m.group === g).map((m) => (
+              {MODULES.filter((m) => m.group === g && (!m.adminOnly || user?.role === 'admin')).map((m) => (
                 <li key={m.path}>
                   <Link to={`/${m.path}`}>
                     <span className="d-label">{m.label}</span>

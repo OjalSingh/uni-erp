@@ -13,11 +13,20 @@ import ExamForms from './pages/ExamForms.tsx'
 import Marks from './pages/Marks.tsx'
 import Results from './pages/Results.tsx'
 import Misc from './pages/Misc.tsx'
+import Books from './pages/Books.tsx'
+import BookNew from './pages/BookNew.tsx'
+import BookDetail from './pages/BookDetail.tsx'
+import Stock from './pages/Stock.tsx'
 import AdmitCards from './pages/AdmitCards.tsx'
 import IdCards from './pages/IdCards.tsx'
 import Certificates from './pages/Certificates.tsx'
 import ChangePassword from './pages/ChangePassword.tsx'
 import { MODULES } from './modules.ts'
+
+function AdminOnly({ children }: { children: ReactNode }) {
+  const { user } = useAuth()
+  return user?.role === 'admin' ? <>{children}</> : <Navigate to="/" replace />
+}
 
 function Protected({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth()
@@ -36,6 +45,8 @@ const built: Record<string, ReactNode> = {
   'id-cards': <IdCards />,
   certificates: <Certificates />,
   'change-password': <ChangePassword />,
+  books: <Books />,
+  stock: <Stock />,
 }
 
 export default function App() {
@@ -51,9 +62,13 @@ export default function App() {
         }
       >
         <Route index element={<Dashboard />} />
-        {MODULES.map((m) => (
-          <Route key={m.path} path={m.path} element={built[m.path] ?? <Placeholder title={m.label} />} />
-        ))}
+        {MODULES.map((m) => {
+          const page = built[m.path] ?? <Placeholder title={m.label} />
+          return <Route key={m.path} path={m.path} element={m.adminOnly ? <AdminOnly>{page}</AdminOnly> : page} />
+        })}
+        <Route path="books/new" element={<AdminOnly><BookNew /></AdminOnly>} />
+        <Route path="books/:id" element={<BookDetail />} />
+        <Route path="stock/:view" element={<AdminOnly><Stock /></AdminOnly>} />
         <Route path="students/new" element={<StudentForm />} />
         <Route path="students/:id/edit" element={<StudentForm />} />
         <Route path="misc/:name" element={<Misc />} />
