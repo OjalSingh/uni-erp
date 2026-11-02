@@ -1,27 +1,44 @@
-import { useEffect, useState } from "react";
+import { Navigate, Route, Routes } from 'react-router-dom'
+import type { ReactNode } from 'react'
+import { useAuth } from './auth.tsx'
+import Layout from './components/Layout.tsx'
+import Login from './pages/Login.tsx'
+import Dashboard from './pages/Dashboard.tsx'
+import Students from './pages/Students.tsx'
+import Centers from './pages/Centers.tsx'
+import Placeholder from './pages/Placeholder.tsx'
+import { MODULES } from './modules.ts'
 
-function App() {
-  const [msg, setMsg] = useState("Loading...");
-
-  useEffect(() => {
-    fetch("http://localhost:5000/api/test")
-      .then((res) => res.json())
-      .then((data) => {
-        console.log(data); // debug
-        setMsg(data.message);
-      })
-      .catch((err) => {
-        console.error(err);
-        setMsg("Error connecting to backend");
-      });
-  }, []);
-
-  return (
-    <div>
-      <h1>UNI ERP</h1>
-      <p>{msg}</p>
-    </div>
-  );
+function Protected({ children }: { children: ReactNode }) {
+  const { user, loading } = useAuth()
+  if (loading) return <p style={{ padding: 24 }}>Loading...</p>
+  return user ? <>{children}</> : <Navigate to="/login" replace />
 }
 
-export default App;
+const built: Record<string, ReactNode> = {
+  students: <Students />,
+  centers: <Centers />,
+}
+
+export default function App() {
+  return (
+    <Routes>
+      <Route path="/login" element={<Login />} />
+      <Route
+        path="/"
+        element={
+          <Protected>
+            <Layout />
+          </Protected>
+        }
+      >
+        <Route index element={<Dashboard />} />
+        {MODULES.map((m) => (
+          <Route key={m.path} path={m.path} element={built[m.path] ?? <Placeholder title={m.label} />} />
+        ))}
+        <Route path="misc/:name" element={<Placeholder title="Miscellaneous" />} />
+      </Route>
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  )
+}
