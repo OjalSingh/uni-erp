@@ -16,6 +16,10 @@ app.use("/api/dashboard", require("./src/routes/dashboard"));
 app.use("/api/centers", require("./src/routes/centers"));
 app.use("/api/students", require("./src/routes/students"));
 app.use("/api/masters", require("./src/routes/masters"));
+app.use("/api/employees", require("./src/routes/employees"));
+app.use("/api/exams", require("./src/routes/exams"));
+app.use("/api/marks", require("./src/routes/marks"));
+app.use("/api/results", require("./src/routes/results"));
 app.use("/api/uploads", require("./src/routes/uploads"));
 app.use("/uploads", express.static(UPLOAD_DIR));
 

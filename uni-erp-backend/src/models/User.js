@@ -8,6 +8,8 @@ const userSchema = new mongoose.Schema(
   {
     username: { type: String, required: true, unique: true, trim: true, lowercase: true },
     name: { type: String, required: true, trim: true },
+    email: { type: String, trim: true, lowercase: true, match: [/^[^\s@]+@[^\s@]+\.[^\s@]+$/, "Enter a valid email address"] },
+    mobile: { type: String, trim: true, match: [/^[6-9]\d{9}$/, "Mobile number must be 10 digits and start with 6, 7, 8 or 9"] },
     role: { type: String, enum: ROLES, required: true },
     center: { type: mongoose.Schema.Types.ObjectId, ref: "Center" },
     password: { type: String, required: true, select: false },
