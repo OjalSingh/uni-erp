@@ -21,10 +21,12 @@ const subjectSchema = new mongoose.Schema(
     part: { type: Number, min: 1, default: 1 },
     name: { type: String, required: true, trim: true },
     code: { type: String, trim: true },
+    type: { type: String, enum: ["Theory", "Practical"] },
+    maxMarks: { type: Number, min: 0 },
   },
   { timestamps: true }
 );
-subjectSchema.index({ course: 1, part: 1, name: 1 }, { unique: true });
+subjectSchema.index({ course: 1, part: 1, name: 1, type: 1 }, { unique: true });
 
 module.exports = {
   CourseType: mongoose.model("CourseType", courseTypeSchema),

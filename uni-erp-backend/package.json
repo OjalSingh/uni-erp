@@ -6,7 +6,9 @@
   "scripts": {
     "start": "node app.js",
     "dev": "nodemon app.js",
-    "seed": "node src/seed.js"
+    "seed": "node src/seed.js",
+    "import-sql": "node src/import/run.js",
+    "import-selftest": "node src/import/selftest.js"
   },
   "keywords": [],
   "author": "",

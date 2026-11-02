@@ -23,6 +23,8 @@ interface Subject {
   name: string
   code?: string
   part: number
+  type?: 'Theory' | 'Practical'
+  maxMarks?: number
 }
 
 function Notice({ error }: { error: string }) {
@@ -192,12 +194,14 @@ function Courses() {
   )
 }
 
+const blankSubject = { name: '', code: '', type: '', maxMarks: '' }
+
 function Subjects() {
   const [courses, setCourses] = useState<Course[]>([])
   const [course, setCourse] = useState('')
   const [part, setPart] = useState(1)
   const [rows, setRows] = useState<Subject[]>([])
-  const [form, setForm] = useState({ name: '', code: '' })
+  const [form, setForm] = useState(blankSubject)
   const [editId, setEditId] = useState<string | null>(null)
   const [error, setError] = useState('')
 
@@ -220,9 +224,10 @@ function Subjects() {
     e.preventDefault()
     setError('')
     try {
-      if (editId) await api(`/masters/subjects/${editId}`, { method: 'PUT', body: { ...form, part } })
-      else await api('/masters/subjects', { method: 'POST', body: { ...form, course, part } })
-      setForm({ name: '', code: '' })
+      const body = { ...form, type: form.type || undefined, maxMarks: form.maxMarks === '' ? undefined : Number(form.maxMarks) }
+      if (editId) await api(`/masters/subjects/${editId}`, { method: 'PUT', body: { ...body, part } })
+      else await api('/masters/subjects', { method: 'POST', body: { ...body, course, part } })
+      setForm(blankSubject)
       setEditId(null)
       load()
     } catch (err) {
@@ -256,13 +261,19 @@ function Subjects() {
       </div>
       <form className="toolbar" onSubmit={submit}>
         <input required placeholder="Subject name" aria-label="Subject name" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
-        <input placeholder="Subject code" aria-label="Subject code" value={form.code} onChange={(e) => setForm((f) => ({ ...f, code: e.target.value }))} />
+        <input placeholder="Paper (I, II ...)" aria-label="Paper" value={form.code} onChange={(e) => setForm((f) => ({ ...f, code: e.target.value }))} />
+        <select aria-label="Theory or practical" value={form.type} onChange={(e) => setForm((f) => ({ ...f, type: e.target.value }))}>
+          <option value="">Type</option>
+          <option>Theory</option>
+          <option>Practical</option>
+        </select>
+        <input type="number" min={0} placeholder="Max marks" aria-label="Maximum marks" value={form.maxMarks} onChange={(e) => setForm((f) => ({ ...f, maxMarks: e.target.value }))} />
         <span>
           <button className="btn-save" type="submit" disabled={!course}>
             {editId ? 'Save subject' : 'Add subject'}
           </button>{' '}
           {editId && (
-            <button type="button" className="btn-quiet" onClick={() => { setEditId(null); setForm({ name: '', code: '' }) }}>
+            <button type="button" className="btn-quiet" onClick={() => { setEditId(null); setForm(blankSubject) }}>
               Cancel
             </button>
           )}
@@ -273,7 +284,9 @@ function Subjects() {
         <thead>
           <tr>
             <th>Subject</th>
-            <th>Code</th>
+            <th>Paper</th>
+            <th>Type</th>
+            <th>Max marks</th>
             <th>Action</th>
           </tr>
         </thead>
@@ -282,8 +295,10 @@ function Subjects() {
             <tr key={r._id}>
               <td>{r.name}</td>
               <td>{r.code}</td>
+              <td>{r.type}</td>
+              <td>{r.maxMarks}</td>
               <td>
-                <button className="btn-mod" onClick={() => { setEditId(r._id); setForm({ name: r.name, code: r.code ?? '' }) }}>
+                <button className="btn-mod" onClick={() => { setEditId(r._id); setForm({ name: r.name, code: r.code ?? '', type: r.type ?? '', maxMarks: r.maxMarks === undefined ? '' : String(r.maxMarks) }) }}>
                   Modify
                 </button>
               </td>
