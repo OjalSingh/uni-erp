@@ -56,14 +56,14 @@ router.get("/subjects", async (req, res) => {
 });
 
 router.post("/subjects", requireRole("admin"), (req, res) => {
-  const { course, part, name, code } = req.body || {};
-  return guarded(res, async () => res.status(201).json(await Subject.create({ course, part, name, code })), "That subject already exists for this course and part");
+  const { course, part, name, code, type, maxMarks } = req.body || {};
+  return guarded(res, async () => res.status(201).json(await Subject.create({ course, part, name, code, type, maxMarks })), "That subject already exists for this course and part");
 });
 
 router.put("/subjects/:id", requireRole("admin"), (req, res) => {
-  const { part, name, code } = req.body || {};
+  const { part, name, code, type, maxMarks } = req.body || {};
   return guarded(res, async () => {
-    const s = await Subject.findByIdAndUpdate(req.params.id, { part, name, code }, { new: true, runValidators: true });
+    const s = await Subject.findByIdAndUpdate(req.params.id, { part, name, code, type, maxMarks }, { new: true, runValidators: true });
     return s ? res.json(s) : res.status(404).json({ message: "Subject not found" });
   }, "That subject already exists for this course and part");
 });

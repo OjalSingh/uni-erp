@@ -6,6 +6,7 @@ const examScheduleSchema = new mongoose.Schema(
     examId: { type: Number, required: true, unique: true },
     examTerm: { type: String, enum: ["May-June", "Nov-Dec"], required: true },
     year: { type: Number, required: true },
+    session: { type: String, trim: true }, // e.g. 2024-25, as recorded by the old system
     formStart: { type: Date, required: true },
     formEnd: { type: Date, required: true },
   },

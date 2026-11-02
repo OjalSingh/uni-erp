@@ -1,3 +1,6 @@
 node_modules
 .env
 uploads/
+# Output of the SQL import contains personal data and passwords: never commit
+import-output/
+*.sql

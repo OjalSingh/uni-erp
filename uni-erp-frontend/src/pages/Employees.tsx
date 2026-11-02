@@ -10,7 +10,14 @@ interface Employee {
   email?: string
   mobile?: string
   role: 'admin' | 'center'
+  roleRef?: { key: string; name: string }
   center?: { _id: string; code: string; name: string }
+  active: boolean
+}
+interface RoleOpt {
+  key: string
+  name: string
+  baseRole: 'admin' | 'center'
   active: boolean
 }
 interface CenterOpt {
@@ -19,11 +26,12 @@ interface CenterOpt {
   name: string
 }
 
-const blank = { username: '', name: '', email: '', mobile: '', role: 'center', center: '', password: '', active: true }
+const blank = { username: '', name: '', email: '', mobile: '', roleKey: 'center', center: '', password: '', active: true }
 
 export default function Employees() {
   const [rows, setRows] = useState<Employee[]>([])
   const [centers, setCenters] = useState<CenterOpt[]>([])
+  const [roles, setRoles] = useState<RoleOpt[]>([])
   const [form, setForm] = useState(blank)
   const [editId, setEditId] = useState<string | null>(null)
   const [open, setOpen] = useState(false)
@@ -35,13 +43,14 @@ export default function Employees() {
   useEffect(() => {
     load()
     api<CenterOpt[]>('/centers').then(setCenters).catch(() => undefined)
+    api<RoleOpt[]>('/config/roles').then(setRoles).catch(() => undefined)
   }, [load])
 
   const set = (k: keyof typeof blank, v: string | boolean) => setForm((f) => ({ ...f, [k]: v }))
 
   const startEdit = (e: Employee) => {
     setEditId(e._id)
-    setForm({ username: e.username, name: e.name, email: e.email ?? '', mobile: e.mobile ?? '', role: e.role, center: e.center?._id ?? '', password: '', active: e.active })
+    setForm({ username: e.username, name: e.name, email: e.email ?? '', mobile: e.mobile ?? '', roleKey: e.roleRef?.key ?? e.role, center: e.center?._id ?? '', password: '', active: e.active })
     setOpen(true)
     setError('')
   }
@@ -93,11 +102,14 @@ export default function Employees() {
             </div>
             <div className="row">
               <label className="req">Role</label>
-              <select value={form.role} onChange={(e) => set('role', e.target.value)}>
-                <option value="admin">Super Admin (head office)</option>
-                <option value="center">Center login</option>
+              <select required value={form.roleKey} onChange={(e) => set('roleKey', e.target.value)}>
+                {roles.filter((r) => r.active || r.key === form.roleKey).map((r) => (
+                  <option key={r.key} value={r.key}>
+                    {r.name}
+                  </option>
+                ))}
               </select>
-              {form.role === 'center' && (
+              {roles.find((r) => r.key === form.roleKey)?.baseRole === 'center' && (
                 <>
                   <label className="req">Center</label>
                   <select required value={form.center} onChange={(e) => set('center', e.target.value)}>
@@ -159,7 +171,7 @@ export default function Employees() {
                 <td>{r.name}</td>
                 <td>{r.email}</td>
                 <td>{r.mobile}</td>
-                <td>{r.role === 'admin' ? 'Super Admin' : `Center ${r.center?.code ?? ''}`}</td>
+                <td>{r.roleRef?.name ?? (r.role === 'admin' ? 'Super Admin' : 'Center')}{r.center && r.role === 'center' ? ` (${r.center.code})` : ''}</td>
                 <td>
                   <span className={`status ${r.active ? 'on' : 'off'}`}>{r.active ? 'Active' : 'Inactive'}</span>
                 </td>
