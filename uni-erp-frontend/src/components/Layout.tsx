@@ -21,7 +21,7 @@ export default function Layout() {
           {GROUPS.map((g) => (
             <div key={g} className="nav-group">
               <div className="nav-heading">{g}</div>
-              {MODULES.filter((m) => m.group === g).map((m) => (
+              {MODULES.filter((m) => m.group === g && (!m.adminOnly || user?.role === 'admin')).map((m) => (
                 <NavLink key={m.path} to={`/${m.path}`}>
                   {m.label}
                 </NavLink>

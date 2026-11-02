@@ -190,3 +190,16 @@ a { color: var(--accent); }
   .certificate { break-after: page; }
   .id-grid { grid-template-columns: repeat(2, 1fr); gap: 6mm; }
 }
+
+/* ---------- Stock tabs, invoices ---------- */
+.subtabs { display: flex; gap: 4px; margin-bottom: 16px; border-bottom: 1px solid var(--line); }
+.subtabs a { padding: 8px 16px; text-decoration: none; color: var(--muted); border-bottom: 3px solid transparent; margin-bottom: -1px; }
+.subtabs a.active { color: var(--navy); font-weight: 600; border-bottom-color: var(--accent); }
+.totals { display: grid; grid-template-columns: max-content max-content; gap: 6px 24px; justify-content: end; margin: 16px 0 0; padding: 0 16px 16px; }
+.totals dt { color: var(--muted); text-align: right; }
+.totals dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.totals input { width: 110px; padding: 6px 8px; border: 1px solid #b9c1ce; border-radius: var(--radius); text-align: right; }
+.invoice-sheet { padding: 24px; }
+.invoice-head { display: flex; flex-direction: column; gap: 2px; border-bottom: 1px solid var(--navy); padding-bottom: 10px; margin-bottom: 12px; }
+.invoice-head b { font-family: var(--serif); font-size: 18px; color: var(--navy); }
+.bill-to { margin: 0 0 16px; }
