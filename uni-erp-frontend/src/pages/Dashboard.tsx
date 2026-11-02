@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api.ts'
-import { MODULES } from '../modules.ts'
+import { GROUPS, MODULES } from '../modules.ts'
 
 interface Stats {
   totalStudents: number
@@ -17,27 +17,36 @@ export default function Dashboard() {
 
   return (
     <>
-      <h2 className="welcome-title">Welcome to AIECCE</h2>
-      <div className="tiles">
-        {MODULES.map((m) => (
-          <Link key={m.path} to={`/${m.path}`} className="tile" style={{ background: m.color }}>
-            {m.label}
-          </Link>
+      <h1 className="page-title">Dashboard</h1>
+
+      <div className="figures">
+        <div>
+          <span className="figure">{stats?.totalStudents ?? '–'}</span>
+          <span className="figure-label">Students across all centers</span>
+        </div>
+        <div>
+          <span className="figure">{stats?.registrationsThisMonth ?? '–'}</span>
+          <span className="figure-label">Registered this month</span>
+        </div>
+      </div>
+
+      <div className="directory">
+        {GROUPS.map((g) => (
+          <section key={g}>
+            <h2>{g}</h2>
+            <ul>
+              {MODULES.filter((m) => m.group === g).map((m) => (
+                <li key={m.path}>
+                  <Link to={`/${m.path}`}>
+                    <span className="d-label">{m.label}</span>
+                    <span className="d-note">{m.built ? m.note : `${m.note} (coming soon)`}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
         ))}
       </div>
-      <section className="panel">
-        <div className="panel-head">Application Analytics</div>
-        <div className="stats">
-          <div className="stat">
-            <b>{stats?.totalStudents ?? '-'}</b>
-            <span>Total Student (All center)</span>
-          </div>
-          <div className="stat">
-            <b>{stats?.registrationsThisMonth ?? '-'}</b>
-            <span>Registration (This month)</span>
-          </div>
-        </div>
-      </section>
     </>
   )
 }

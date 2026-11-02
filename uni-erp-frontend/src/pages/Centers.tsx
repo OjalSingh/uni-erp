@@ -19,8 +19,9 @@ export default function Centers() {
   }, [])
 
   return (
-    <section className="panel">
-      <div className="panel-head">Show Center Details</div>
+    <>
+      <h1 className="page-title">Center Details</h1>
+      <section className="panel">
       {error && <p className="err pad">{error}</p>}
       <table className="grid">
         <thead>
@@ -39,11 +40,13 @@ export default function Centers() {
               <td>{c.name}</td>
               <td>{c.email}</td>
               <td>{c.mobile}</td>
-              <td>{c.status}</td>
+              <td><span className={`status ${c.status === 'Active' ? 'on' : 'off'}`}>{c.status}</span></td>
             </tr>
           ))}
         </tbody>
       </table>
+      {rows.length === 0 && !error && <p className="empty-note">No centers yet.</p>}
     </section>
+    </>
   )
 }
