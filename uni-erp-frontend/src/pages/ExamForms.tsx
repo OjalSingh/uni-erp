@@ -20,8 +20,10 @@ interface ExamForm {
 }
 
 export default function ExamForms() {
-  const { user } = useAuth()
-  const isAdmin = user?.role === 'admin'
+  const { can } = useAuth()
+  const canReview = can('exams:review')
+  const canSchedule = can('exams:schedule')
+  const canCreate = can('exams:create')
   const [schedules, setSchedules] = useState<Schedule[]>([])
   const [schedule, setSchedule] = useState('')
   const [data, setData] = useState<Paged<ExamForm> | null>(null)
@@ -97,7 +99,7 @@ export default function ExamForms() {
     <>
       <div className="page-head">
         <h1 className="page-title">Fill Exam Form</h1>
-        {isAdmin && (
+        {canSchedule && (
           <button className="btn-create" onClick={() => setShowSched((v) => !v)}>
             {showSched ? 'Close' : 'New exam schedule'}
           </button>
@@ -139,6 +141,7 @@ export default function ExamForms() {
             </span>
           )}
         </div>
+        {canCreate && (
         <form className="toolbar" onSubmit={addForm}>
           <input required placeholder="Student enrollment no." aria-label="Enrollment number" value={add.enrollNo} onChange={(e) => setAdd((a) => ({ ...a, enrollNo: e.target.value }))} />
           <label>
@@ -155,10 +158,11 @@ export default function ExamForms() {
             Add exam form
           </button>
         </form>
+        )}
         {error && <p className="err pad">{error}</p>}
         <div className="toolbar">
           <input placeholder="Search by name, enrollment or roll no." aria-label="Search exam forms" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1) }} />
-          {isAdmin && (
+          {canReview && (
             <span>
               <button className="btn-quiet" onClick={() => setStatus(selected, 'Accepted')}>
                 Accept selected
@@ -172,7 +176,7 @@ export default function ExamForms() {
         <table className="grid">
           <thead>
             <tr>
-              {isAdmin && <th aria-label="Select" />}
+              {canReview && <th aria-label="Select" />}
               <th>Enroll No</th>
               <th>Name</th>
               <th>Center</th>
@@ -187,7 +191,7 @@ export default function ExamForms() {
           <tbody>
             {data?.items.map((f) => (
               <tr key={f._id}>
-                {isAdmin && (
+                {canReview && (
                   <td>
                     <input type="checkbox" aria-label={`Select ${f.student.name}`} checked={selected.includes(f._id)} onChange={() => toggle(f._id)} />
                   </td>
@@ -203,9 +207,9 @@ export default function ExamForms() {
                   <span className={`status ${f.status === 'Accepted' ? 'on' : 'off'}`}>{f.status}</span>
                 </td>
                 <td>
-                  <button className="btn-del" onClick={() => remove(f)}>
+                  {canCreate && (<button className="btn-del" onClick={() => remove(f)}>
                     Remove
-                  </button>
+                  </button>)}
                 </td>
               </tr>
             ))}

@@ -2,11 +2,11 @@ const express = require("express");
 const Mark = require("../models/Mark");
 const ExamForm = require("../models/ExamForm");
 const Student = require("../models/Student");
-const { requireAuth, requireRole } = require("../middleware/auth");
+const { requireAuth, byMethod } = require("../middleware/auth");
 const { guarded, paging, escapeRegex } = require("../lib/util");
 
 const router = express.Router();
-router.use(requireAuth, requireRole("admin"));
+router.use(requireAuth, byMethod("marks:view", "marks:edit"));
 
 router.get("/", async (req, res) => {
   const { schedule, search = "" } = req.query;

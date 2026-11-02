@@ -211,3 +211,5 @@ a { color: var(--accent); }
 .checks { border: 1px solid var(--line); border-radius: var(--radius); margin: 12px 0; padding: 8px 14px 12px; display: flex; flex-wrap: wrap; gap: 8px 24px; }
 .checks legend { font-weight: 600; font-size: 14px; color: var(--navy); padding: 0 6px; }
 .checks label { font-size: 14px; display: inline-flex; align-items: center; gap: 6px; }
+.check-group { display: flex; flex-direction: column; gap: 4px; min-width: 240px; }
+.check-group strong { font-size: 14px; color: var(--navy); margin-bottom: 2px; }

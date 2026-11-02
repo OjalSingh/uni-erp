@@ -2,6 +2,7 @@ import { Fragment, useCallback, useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { api } from '../api.ts'
+import { useAuth } from '../auth.tsx'
 import { errMsg, fmtDate, fmtMoney, toInputDate } from '../format.ts'
 
 interface Item { _id: string; code: string; name: string }
@@ -77,6 +78,8 @@ function Summary() {
 }
 
 function Items() {
+  const { can } = useAuth()
+  const canManage = can('stock:manage')
   const [rows, setRows] = useState<Item[]>([])
   const [form, setForm] = useState({ code: '', name: '' })
   const [editId, setEditId] = useState<string | null>(null)
@@ -99,6 +102,7 @@ function Items() {
 
   return (
     <section className="panel">
+      {canManage && (
       <form className="toolbar" onSubmit={submit}>
         <input required disabled={Boolean(editId)} placeholder="Item code" aria-label="Item code" value={form.code} onChange={(e) => setForm((f) => ({ ...f, code: e.target.value }))} />
         <input required placeholder="Item name" aria-label="Item name" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
@@ -107,6 +111,7 @@ function Items() {
           {editId && <button type="button" className="btn-quiet" onClick={() => { setEditId(null); setForm({ code: '', name: '' }) }}>Cancel</button>}
         </span>
       </form>
+      )}
       {error && <p className="err pad">{error}</p>}
       <table className="grid">
         <thead><tr><th>Item code</th><th>Item name</th><th>Action</th></tr></thead>
@@ -115,8 +120,8 @@ function Items() {
             <tr key={i._id}>
               <td>{i.code}</td><td>{i.name}</td>
               <td>
-                <button className="btn-mod" onClick={() => { setEditId(i._id); setForm({ code: i.code, name: i.name }) }}>Modify</button>{' '}
-                <button className="btn-del" onClick={() => remove(i)}>Delete</button>
+                {canManage && (<><button className="btn-mod" onClick={() => { setEditId(i._id); setForm({ code: i.code, name: i.name }) }}>Modify</button>{' '}
+                <button className="btn-del" onClick={() => remove(i)}>Delete</button></>)}
               </td>
             </tr>
           ))}
@@ -130,6 +135,8 @@ function Items() {
 const blankSupplier = { name: '', businessName: '', mobile: '', email: '', pan: '', gst: '', address: '' }
 
 function Suppliers() {
+  const { can } = useAuth()
+  const canManage = can('stock:manage')
   const [rows, setRows] = useState<Supplier[]>([])
   const [form, setForm] = useState(blankSupplier)
   const [editId, setEditId] = useState<string | null>(null)
@@ -153,6 +160,7 @@ function Suppliers() {
 
   return (
     <section className="panel">
+      {canManage && (
       <form className="reg-form" onSubmit={submit}>
         <div className="row">
           <label className="req">Supplier name</label><input required value={form.name} onChange={(e) => set('name', e.target.value)} />
@@ -173,6 +181,7 @@ function Suppliers() {
           {editId && <button type="button" className="btn-quiet" onClick={() => { setEditId(null); setForm(blankSupplier) }}>Cancel</button>}
         </div>
       </form>
+      )}
       <table className="grid">
         <thead><tr><th>Name</th><th>Business name</th><th>Mobile</th><th>Email</th><th>GST no.</th><th>PAN</th><th>Action</th></tr></thead>
         <tbody>
@@ -180,8 +189,8 @@ function Suppliers() {
             <tr key={s._id}>
               <td>{s.name}</td><td>{s.businessName}</td><td>{s.mobile}</td><td>{s.email}</td><td>{s.gst}</td><td>{s.pan}</td>
               <td>
-                <button className="btn-mod" onClick={() => { setEditId(s._id); setForm({ ...blankSupplier, ...Object.fromEntries(Object.entries(s).filter(([k]) => k in blankSupplier)) } as typeof blankSupplier) }}>Modify</button>{' '}
-                <button className="btn-del" onClick={() => remove(s)}>Delete</button>
+                {canManage && (<><button className="btn-mod" onClick={() => { setEditId(s._id); setForm({ ...blankSupplier, ...Object.fromEntries(Object.entries(s).filter(([k]) => k in blankSupplier)) } as typeof blankSupplier) }}>Modify</button>{' '}
+                <button className="btn-del" onClick={() => remove(s)}>Delete</button></>)}
               </td>
             </tr>
           ))}
@@ -195,6 +204,8 @@ function Suppliers() {
 const blankEntry = { supplier: '', item: '', purchasePrice: '', sellPrice: '', discountPercent: '0', quantity: '', receivedAt: toInputDate(new Date().toISOString()) }
 
 function Entries() {
+  const { can } = useAuth()
+  const canManage = can('stock:manage')
   const [rows, setRows] = useState<Entry[]>([])
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
   const [items, setItems] = useState<Item[]>([])
@@ -225,6 +236,7 @@ function Entries() {
 
   return (
     <section className="panel">
+      {canManage && (
       <form className="reg-form" onSubmit={submit}>
         <div className="row">
           <label className="req">Supplier</label>
@@ -253,6 +265,7 @@ function Entries() {
           {editId && <button type="button" className="btn-quiet" onClick={() => { setEditId(null); setForm(blankEntry) }}>Cancel</button>}
         </div>
       </form>
+      )}
       <table className="grid">
         <thead><tr><th>Supplier</th><th>Item</th><th>Purchase</th><th>Sell</th><th>Discount</th><th>Quantity</th><th>Received</th><th>Action</th></tr></thead>
         <tbody>
@@ -261,8 +274,8 @@ function Entries() {
               <td>{r.supplier?.businessName}</td><td>{r.item?.name}</td><td>{fmtMoney(r.purchasePrice)}</td><td>{fmtMoney(r.sellPrice)}</td>
               <td>{r.discountPercent}%</td><td>{r.quantity}</td><td>{fmtDate(r.receivedAt)}</td>
               <td>
-                <button className="btn-mod" onClick={() => { setEditId(r._id); setForm({ supplier: r.supplier._id, item: r.item._id, purchasePrice: String(r.purchasePrice), sellPrice: String(r.sellPrice), discountPercent: String(r.discountPercent), quantity: String(r.quantity), receivedAt: toInputDate(r.receivedAt) }) }}>Modify</button>{' '}
-                <button className="btn-del" onClick={() => remove(r)}>Delete</button>
+                {canManage && (<><button className="btn-mod" onClick={() => { setEditId(r._id); setForm({ supplier: r.supplier._id, item: r.item._id, purchasePrice: String(r.purchasePrice), sellPrice: String(r.sellPrice), discountPercent: String(r.discountPercent), quantity: String(r.quantity), receivedAt: toInputDate(r.receivedAt) }) }}>Modify</button>{' '}
+                <button className="btn-del" onClick={() => remove(r)}>Delete</button></>)}
               </td>
             </tr>
           ))}

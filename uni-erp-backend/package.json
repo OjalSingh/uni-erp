@@ -8,7 +8,8 @@
     "dev": "nodemon app.js",
     "seed": "node src/seed.js",
     "import-sql": "node src/import/run.js",
-    "import-selftest": "node src/import/selftest.js"
+    "import-selftest": "node src/import/selftest.js",
+    "rbac-selftest": "node src/rbac-selftest.js"
   },
   "keywords": [],
   "author": "",

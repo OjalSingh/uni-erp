@@ -2,11 +2,11 @@ const express = require("express");
 const mongoose = require("mongoose");
 const { Supplier, Item, StockEntry } = require("../models/Inventory");
 const Invoice = require("../models/Invoice");
-const { requireAuth, requireRole } = require("../middleware/auth");
+const { requireAuth, byMethod } = require("../middleware/auth");
 const { guarded } = require("../lib/util");
 
 const router = express.Router();
-router.use(requireAuth, requireRole("admin"));
+router.use(requireAuth, byMethod("stock:view", "stock:manage"));
 
 // quantity received and quantity invoiced, per item
 async function totalsByItem() {

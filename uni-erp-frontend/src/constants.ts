@@ -9,6 +9,3 @@ export const INDIAN_STATES = [
 ]
 
 export const INSTITUTE_NAME = 'Advance Information in Early Childhood Care & Education, New Delhi'
-
-// Must match CENTER_MENUS on the server: the screens a center login may use at all
-export const CENTER_MENUS = ['students', 'centers', 'exam-form', 'admit-cards', 'id-cards', 'books', 'change-password']

@@ -1,7 +1,7 @@
 const express = require("express");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
-const { requireAuth } = require("../middleware/auth");
+const { requireAuth, permissionsFor } = require("../middleware/auth");
 
 const router = express.Router();
 
@@ -20,10 +20,10 @@ router.post("/login", async (req, res) => {
   const token = jwt.sign({ sub: user.id, role: user.role }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN || "8h",
   });
-  res.json({ token, user });
+  res.json({ token, user: { ...user.toJSON(), permissions: [...(await permissionsFor(user))] } });
 });
 
-router.get("/me", requireAuth, (req, res) => res.json({ user: req.user }));
+router.get("/me", requireAuth, (req, res) => res.json({ user: { ...req.user.toJSON(), permissions: [...req.perms] } }));
 
 router.post("/change-password", requireAuth, async (req, res) => {
   const { currentPassword, newPassword } = req.body || {};

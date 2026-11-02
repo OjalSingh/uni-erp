@@ -2,11 +2,11 @@ const express = require("express");
 const ResultPublish = require("../models/ResultPublish");
 const ExamForm = require("../models/ExamForm");
 const Mark = require("../models/Mark");
-const { requireAuth, requireRole } = require("../middleware/auth");
+const { requireAuth, byMethod } = require("../middleware/auth");
 const { guarded, nextNumber } = require("../lib/util");
 
 const router = express.Router();
-router.use(requireAuth, requireRole("admin"));
+router.use(requireAuth, byMethod("results:view", "results:manage"));
 
 router.get("/", async (_req, res) => {
   const rows = await ResultPublish.find().sort({ publishId: -1 }).populate("schedule", "examId examTerm year");

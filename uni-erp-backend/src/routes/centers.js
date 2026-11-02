@@ -1,6 +1,6 @@
 const express = require("express");
 const Center = require("../models/Center");
-const { requireAuth, requireRole } = require("../middleware/auth");
+const { requireAuth, requirePermission } = require("../middleware/auth");
 const { guarded } = require("../lib/util");
 
 const router = express.Router();
@@ -23,11 +23,11 @@ router.get("/:id", async (req, res) => {
   return c ? res.json(c) : res.status(404).json({ message: "Center not found" });
 });
 
-router.post("/", requireRole("admin"), (req, res) =>
+router.post("/", requirePermission("centers:manage"), (req, res) =>
   guarded(res, async () => res.status(201).json(await Center.create(pick(req.body))), "Center code already exists")
 );
 
-router.put("/:id", requireRole("admin"), (req, res) =>
+router.put("/:id", requirePermission("centers:manage"), (req, res) =>
   guarded(res, async () => {
     // Blank fields clear the stored value; the code stays fixed once created
     const body = Object.fromEntries(FIELDS.filter((f) => f !== "code" && req.body?.[f] !== undefined).map((f) => [f, req.body[f] === "" ? undefined : req.body[f]]));
@@ -40,7 +40,7 @@ router.put("/:id", requireRole("admin"), (req, res) =>
 );
 
 // Soft delete: students and invoices keep their center reference
-router.delete("/:id", requireRole("admin"), async (req, res) => {
+router.delete("/:id", requirePermission("centers:manage"), async (req, res) => {
   const center = await Center.findByIdAndUpdate(req.params.id, { status: "Inactive" }, { new: true });
   if (!center) return res.status(404).json({ message: "Center not found" });
   res.json({ message: "Center deactivated" });
