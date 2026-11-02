@@ -23,6 +23,23 @@ router.get("/next-enroll-no", async (req, res) => {
   res.json({ enrollNo: await nextEnrollNo(session) });
 });
 
+// Active students for ID card printing (max 200 per request)
+router.get("/id-cards", async (req, res) => {
+  const { session, center, search = "" } = req.query;
+  if (!session) return res.status(400).json({ message: "Choose a session" });
+  const filter = { session, status: "Active", ...centerScope(req) };
+  if (center && req.user.role === "admin") filter.center = center;
+  if (search) {
+    const rx = new RegExp(escapeRegex(String(search)), "i");
+    filter.$or = [{ enrollNo: rx }, { name: rx }];
+  }
+  res.json(
+    await Student.find(filter).sort({ enrollNo: 1 }).limit(200)
+      .select("enrollNo name fatherName dob mobile image session center course")
+      .populate("center", "code name").populate("course", "name")
+  );
+});
+
 // List by session with search + pagination (the DataTable on the original page)
 router.get("/", async (req, res) => {
   const { session, search = "", page = 1, limit = 10 } = req.query;

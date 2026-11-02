@@ -13,6 +13,10 @@ import ExamForms from './pages/ExamForms.tsx'
 import Marks from './pages/Marks.tsx'
 import Results from './pages/Results.tsx'
 import Misc from './pages/Misc.tsx'
+import AdmitCards from './pages/AdmitCards.tsx'
+import IdCards from './pages/IdCards.tsx'
+import Certificates from './pages/Certificates.tsx'
+import ChangePassword from './pages/ChangePassword.tsx'
 import { MODULES } from './modules.ts'
 
 function Protected({ children }: { children: ReactNode }) {
@@ -28,6 +32,10 @@ const built: Record<string, ReactNode> = {
   'exam-form': <ExamForms />,
   marks: <Marks />,
   results: <Results />,
+  'admit-cards': <AdmitCards />,
+  'id-cards': <IdCards />,
+  certificates: <Certificates />,
+  'change-password': <ChangePassword />,
 }
 
 export default function App() {
