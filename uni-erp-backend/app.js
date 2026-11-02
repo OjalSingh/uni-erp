@@ -2,6 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const connectDB = require("./src/config/db");
+const { UPLOAD_DIR } = require("./src/routes/uploads");
 
 const app = express();
 
@@ -14,6 +15,9 @@ app.use("/api/auth", require("./src/routes/auth"));
 app.use("/api/dashboard", require("./src/routes/dashboard"));
 app.use("/api/centers", require("./src/routes/centers"));
 app.use("/api/students", require("./src/routes/students"));
+app.use("/api/masters", require("./src/routes/masters"));
+app.use("/api/uploads", require("./src/routes/uploads"));
+app.use("/uploads", express.static(UPLOAD_DIR));
 
 // Express 5 forwards async errors here
 app.use((err, _req, res, _next) => {

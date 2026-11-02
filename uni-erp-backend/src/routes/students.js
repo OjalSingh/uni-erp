@@ -61,6 +61,7 @@ router.post("/", async (req, res) => {
   if (!/^\d{4}-\d{2}$/.test(body.session || "")) return res.status(400).json({ message: "Valid session is required" });
   delete body.enrollNo;
   delete body._id;
+  if (body.image && !/^\/uploads\/[a-f0-9]{32}\.(jpg|png|gif)$/.test(body.image)) delete body.image;
 
   // Retry once on enrollNo collision from concurrent registrations
   for (let attempt = 0; attempt < 2; attempt++) {
@@ -79,6 +80,7 @@ router.put("/:id", async (req, res) => {
   delete body.enrollNo; // never changes after registration
   delete body._id;
   if (req.user.role === "center") delete body.center;
+  if (body.image && !/^\/uploads\/[a-f0-9]{32}\.(jpg|png|gif)$/.test(body.image)) delete body.image;
   const s = await Student.findOneAndUpdate({ _id: req.params.id, ...centerScope(req) }, body, { new: true, runValidators: true });
   if (!s) return res.status(404).json({ message: "Student not found" });
   res.json(s);

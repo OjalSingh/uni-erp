@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { api } from '../api.ts'
+import { SESSIONS } from '../constants.ts'
 
 interface Student {
   _id: string
@@ -7,6 +9,7 @@ interface Student {
   session: string
   name: string
   mobile: string
+  image?: string
   status: string
   center?: { code: string; name: string }
   course?: { name: string }
@@ -18,8 +21,6 @@ interface Page {
   page: number
   pages: number
 }
-
-const SESSIONS = ['2026-27', '2025-26', '2024-25', '2023-24']
 
 export default function Students() {
   const [session, setSession] = useState(SESSIONS[1])
@@ -47,7 +48,12 @@ export default function Students() {
 
   return (
     <section className="panel">
-      <div className="panel-head">Student Registration</div>
+      <div className="panel-head">
+        Student Registration
+        <Link to="/students/new" className="btn-create">
+          Create New Registration
+        </Link>
+      </div>
       <div className="toolbar">
         <label>
           Select Session{' '}
@@ -80,6 +86,7 @@ export default function Students() {
             <th>Center code</th>
             <th>Session</th>
             <th>Name</th>
+            <th>Image</th>
             <th>Mobile No</th>
             <th>Course</th>
             <th>Status</th>
@@ -93,10 +100,14 @@ export default function Students() {
               <td>{s.center?.code}</td>
               <td>{s.session}</td>
               <td>{s.name}</td>
+              <td>{s.image ? <img className="thumb" src={s.image} alt="" /> : null}</td>
               <td>{s.mobile}</td>
               <td>{s.course?.name}</td>
               <td>{s.status}</td>
               <td>
+                <Link to={`/students/${s._id}/edit`} className="btn-mod">
+                  Modify
+                </Link>{' '}
                 <button className="btn-del" onClick={() => deactivate(s)}>
                   Delete
                 </button>

@@ -6,6 +6,7 @@ import Login from './pages/Login.tsx'
 import Dashboard from './pages/Dashboard.tsx'
 import Students from './pages/Students.tsx'
 import Centers from './pages/Centers.tsx'
+import StudentForm from './pages/StudentForm.tsx'
 import Placeholder from './pages/Placeholder.tsx'
 import { MODULES } from './modules.ts'
 
@@ -36,6 +37,8 @@ export default function App() {
         {MODULES.map((m) => (
           <Route key={m.path} path={m.path} element={built[m.path] ?? <Placeholder title={m.label} />} />
         ))}
+        <Route path="students/new" element={<StudentForm />} />
+        <Route path="students/:id/edit" element={<StudentForm />} />
         <Route path="misc/:name" element={<Placeholder title="Miscellaneous" />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
