@@ -47,16 +47,17 @@ export default function Students() {
   }
 
   return (
-    <section className="panel">
-      <div className="panel-head">
-        Student Registration
+    <>
+      <div className="page-head">
+        <h1 className="page-title">Student Registration</h1>
         <Link to="/students/new" className="btn-create">
-          Create New Registration
+          New registration
         </Link>
       </div>
+      <section className="panel">
       <div className="toolbar">
         <label>
-          Select Session{' '}
+          Session{' '}
           <select
             value={session}
             onChange={(e) => {
@@ -70,7 +71,7 @@ export default function Students() {
           </select>
         </label>
         <input
-          placeholder="Search"
+          placeholder="Search by name, enrollment or mobile" aria-label="Search students"
           value={search}
           onChange={(e) => {
             setSearch(e.target.value)
@@ -103,19 +104,20 @@ export default function Students() {
               <td>{s.image ? <img className="thumb" src={s.image} alt="" /> : null}</td>
               <td>{s.mobile}</td>
               <td>{s.course?.name}</td>
-              <td>{s.status}</td>
+              <td><span className={`status ${s.status === 'Active' ? 'on' : 'off'}`}>{s.status}</span></td>
               <td>
                 <Link to={`/students/${s._id}/edit`} className="btn-mod">
                   Modify
                 </Link>{' '}
                 <button className="btn-del" onClick={() => deactivate(s)}>
-                  Delete
+                  Deactivate
                 </button>
               </td>
             </tr>
           ))}
         </tbody>
       </table>
+      {data && data.items.length === 0 && <p className="empty-note">No students found for this session.</p>}
       <div className="pager">
         <button disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
           Previous
@@ -128,5 +130,6 @@ export default function Students() {
         </button>
       </div>
     </section>
+    </>
   )
 }

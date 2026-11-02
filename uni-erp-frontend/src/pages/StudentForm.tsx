@@ -174,15 +174,16 @@ export default function StudentForm() {
   }
 
   return (
+    <>
+    <div className="page-head">
+      <h1 className="page-title">{editing ? 'Modify registration' : 'New registration'}</h1>
+      <Link to="/students" className="btn-back">
+        Back to students
+      </Link>
+    </div>
     <section className="panel">
-      <div className="panel-head">
-        Student Registration &gt; {editing ? 'Modify Registration' : 'Create New Registration'}
-        <Link to="/students" className="btn-back">
-          Back
-        </Link>
-      </div>
       <form className="reg-form" onSubmit={submit}>
-        <p className="hint">Fields marked * are required</p>
+        <p className="hint">Labels in red are required.</p>
 
         <div className="row">
           <label>Enrollment No</label>
@@ -272,7 +273,7 @@ export default function StudentForm() {
           <input required value={form.nationality} onChange={(e) => set('nationality', e.target.value)} />
         </div>
 
-        <h4>Address &amp; Image Information</h4>
+        <h2>Address and photo</h2>
         <div className="row">
           <label>Address</label>
           <textarea rows={2} value={form.address} onChange={(e) => set('address', e.target.value)} />
@@ -294,10 +295,10 @@ export default function StudentForm() {
           <label>Upload Image</label>
           <input type="file" accept="image/png,image/jpeg,image/gif" onChange={(e) => uploadPhoto(e.target.files?.[0])} />
           {form.image && <img className="thumb" src={form.image} alt="Student" />}
-          <span className="hint red">Only upload passport size photo (gif, jpeg, jpg, png), max 500 KB</span>
+          <span className="hint red">Passport-size photo. gif, jpeg or png, up to 500 KB.</span>
         </div>
 
-        <h4>Particular of Academic Qualification</h4>
+        <h2>Academic qualifications</h2>
         <table className="grid">
           <thead>
             <tr>
@@ -340,10 +341,11 @@ export default function StudentForm() {
         {error && <p className="err pad">{error}</p>}
         <div className="actions">
           <button type="submit" className="btn-save" disabled={busy}>
-            {busy ? 'Saving...' : 'Save'}
+            {busy ? 'Saving...' : 'Save registration'}
           </button>
         </div>
       </form>
     </section>
+    </>
   )
 }

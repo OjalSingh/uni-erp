@@ -21,33 +21,35 @@ export default function Login() {
       await login(username, password)
       navigate('/', { replace: true })
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed')
+      setError(err instanceof Error ? err.message : 'Could not sign in. Try again.')
     } finally {
       setBusy(false)
     }
   }
 
   return (
-    <div className="login-bg">
-      <form className="login-card" onSubmit={submit}>
-        <h1>Admin Panel</h1>
-        <div className="login-body">
-          <div className="field">
-            <span className="icon green">&#9786;</span>
-            <input placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} autoFocus />
-          </div>
-          <div className="field">
-            <span className="icon orange">&#9919;</span>
-            <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
-          </div>
-        </div>
-        <div className="login-foot">
-          <span className="err">{error}</span>
-          <button type="submit" disabled={busy}>
-            Login
+    <div className="login">
+      <section className="login-hero">
+        <h1>
+          Advance Information in Early Childhood Care &amp; Education
+        </h1>
+        <p>Student registration, examinations and certification for AIECCE study centers.</p>
+      </section>
+      <section className="login-panel">
+        <form onSubmit={submit} aria-labelledby="signin">
+          <h2 id="signin">Sign in</h2>
+          <label htmlFor="username">Username</label>
+          <input id="username" autoComplete="username" value={username} onChange={(e) => setUsername(e.target.value)} autoFocus />
+          <label htmlFor="password">Password</label>
+          <input id="password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
+          <p className="form-error" role="alert">
+            {error}
+          </p>
+          <button type="submit" className="btn-primary" disabled={busy || !username || !password}>
+            {busy ? 'Signing in...' : 'Sign in'}
           </button>
-        </div>
-      </form>
+        </form>
+      </section>
     </div>
   )
 }

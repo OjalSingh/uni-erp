@@ -14,7 +14,7 @@ router.post("/login", async (req, res) => {
   const user = await User.findOne({ username: String(username).trim().toLowerCase() }).select("+password");
   // One message for unknown user / wrong password avoids leaking which usernames exist
   if (!user || !user.active || !(await user.checkPassword(password))) {
-    return res.status(401).json({ message: "Invalid user name & Password!" });
+    return res.status(401).json({ message: "Username or password is incorrect." });
   }
 
   const token = jwt.sign({ sub: user.id, role: user.role }, process.env.JWT_SECRET, {
