@@ -15,7 +15,7 @@ const { CourseType, Course } = require("./models/Course");
   const diploma = await CourseType.findOneAndUpdate({ name: "Diploma" }, { name: "Diploma" }, { upsert: true, new: true });
   await Course.findOneAndUpdate(
     { name: "Nursery Teacher Training (N.T.T) - One Year" },
-    { courseType: diploma._id, name: "Nursery Teacher Training (N.T.T) - One Year", durationYears: 1 },
+    { courseType: diploma._id, name: "Nursery Teacher Training (N.T.T) - One Year", durationYears: 1, code: "24", parts: 2 },
     { upsert: true }
   );
 

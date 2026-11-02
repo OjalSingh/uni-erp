@@ -5,6 +5,8 @@ const { requireAuth, centerScope } = require("../middleware/auth");
 const router = express.Router();
 router.use(requireAuth);
 
+const validationMessage = (e) => Object.values(e.errors).map((x) => x.message).join(". ");
+
 const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 // Enrollment no. = 2-digit start year of the session + 5-digit running number, e.g. 2451098
@@ -69,7 +71,7 @@ router.post("/", async (req, res) => {
       body.enrollNo = await nextEnrollNo(body.session);
       return res.status(201).json(await Student.create(body));
     } catch (e) {
-      if (e.name === "ValidationError") return res.status(400).json({ message: e.message });
+      if (e.name === "ValidationError") return res.status(400).json({ message: validationMessage(e) });
       if (e.code !== 11000 || attempt === 1) throw e;
     }
   }
@@ -81,9 +83,14 @@ router.put("/:id", async (req, res) => {
   delete body._id;
   if (req.user.role === "center") delete body.center;
   if (body.image && !/^\/uploads\/[a-f0-9]{32}\.(jpg|png|gif)$/.test(body.image)) delete body.image;
-  const s = await Student.findOneAndUpdate({ _id: req.params.id, ...centerScope(req) }, body, { new: true, runValidators: true });
-  if (!s) return res.status(404).json({ message: "Student not found" });
-  res.json(s);
+  try {
+    const s = await Student.findOneAndUpdate({ _id: req.params.id, ...centerScope(req) }, body, { new: true, runValidators: true });
+    if (!s) return res.status(404).json({ message: "Student not found" });
+    res.json(s);
+  } catch (e) {
+    if (e.name === "ValidationError") return res.status(400).json({ message: validationMessage(e) });
+    throw e;
+  }
 });
 
 // Soft delete so marks/certificates tied to the student are never orphaned

@@ -17,6 +17,16 @@ interface Qualification {
   division: string
 }
 
+const MOBILE_RE = /^[6-9]\d{9}$/
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+// Latest allowed birth date: exactly 18 years ago today (yyyy-mm-dd)
+const maxDob = () => {
+  const d = new Date()
+  d.setFullYear(d.getFullYear() - 18)
+  return d.toISOString().slice(0, 10)
+}
+
 const blankQual = (): Qualification => ({ examination: '', board: '', year: '', division: '' })
 
 interface FormState {
@@ -79,6 +89,7 @@ export default function StudentForm() {
   const [courses, setCourses] = useState<Option[]>([])
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [pinNote, setPinNote] = useState('')
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) => setForm((f) => ({ ...f, [key]: value }))
 
@@ -151,13 +162,37 @@ export default function StudentForm() {
     set('image', data.path)
   }
 
+  // Fill state and city from the pin code using India Post's public directory
+  const lookupPin = async (pin: string) => {
+    set('pinCode', pin)
+    setPinNote('')
+    if (!/^\d{6}$/.test(pin)) return
+    try {
+      const res = await fetch(`https://api.postalpincode.in/pincode/${pin}`)
+      const data = await res.json()
+      const office = data?.[0]?.PostOffice?.[0]
+      if (!office) return setPinNote('Pin code not found. Enter state and city yourself.')
+      setForm((f) => ({
+        ...f,
+        pinCode: pin,
+        state: INDIAN_STATES.includes(office.State) ? office.State : f.state,
+        city: office.District ?? f.city,
+      }))
+    } catch {
+      setPinNote('Could not look up this pin code. Enter state and city yourself.')
+    }
+  }
+
   const setQual = (i: number, key: keyof Qualification, value: string) =>
     setForm((f) => ({ ...f, qualifications: f.qualifications.map((q, idx) => (idx === i ? { ...q, [key]: value } : q)) }))
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
     setError('')
-    if (!/^\d{10}$/.test(form.mobile)) return setError('Mobile number must be 10 digits')
+    if (!MOBILE_RE.test(form.mobile)) return setError('Mobile number must be 10 digits and start with 6, 7, 8 or 9')
+    if (form.email && !EMAIL_RE.test(form.email)) return setError('Enter a valid email address, for example name@example.com')
+    if (form.dob > maxDob()) return setError('Student must be at least 18 years old')
+    if (form.pinCode && !/^\d{6}$/.test(form.pinCode)) return setError('Pin code must be 6 digits')
     setBusy(true)
     try {
       // Drop empty qualification rows
@@ -225,7 +260,7 @@ export default function StudentForm() {
 
         <div className="row">
           <label className="req">Student Mobile No</label>
-          <input required inputMode="numeric" maxLength={10} value={form.mobile} onChange={(e) => set('mobile', e.target.value)} />
+          <input required inputMode="numeric" maxLength={10} value={form.mobile} onChange={(e) => set('mobile', e.target.value.replace(/\D/g, ''))} />
           <label>Student Email ID</label>
           <input type="email" value={form.email} onChange={(e) => set('email', e.target.value)} />
         </div>
@@ -268,7 +303,7 @@ export default function StudentForm() {
             ))}
           </span>
           <label className="req">Date of Birth</label>
-          <input required type="date" value={form.dob} onChange={(e) => set('dob', e.target.value)} />
+          <input required type="date" max={maxDob()} value={form.dob} onChange={(e) => set('dob', e.target.value)} />
           <label className="req">Nationality</label>
           <input required value={form.nationality} onChange={(e) => set('nationality', e.target.value)} />
         </div>
@@ -289,7 +324,8 @@ export default function StudentForm() {
           <label>City</label>
           <input value={form.city} onChange={(e) => set('city', e.target.value)} />
           <label>Pin Code</label>
-          <input inputMode="numeric" maxLength={6} value={form.pinCode} onChange={(e) => set('pinCode', e.target.value)} />
+          <input inputMode="numeric" maxLength={6} value={form.pinCode} onChange={(e) => lookupPin(e.target.value.replace(/\D/g, ''))} />
+          {pinNote && <span className="hint">{pinNote}</span>}
         </div>
         <div className="row">
           <label>Upload Image</label>

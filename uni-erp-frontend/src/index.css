@@ -99,7 +99,9 @@ a { color: var(--accent); }
 .empty-note { padding: 20px 16px; color: var(--muted); margin: 0; }
 .toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 14px 16px; border-bottom: 1px solid var(--line); }
 .toolbar select, .toolbar input { padding: 7px 10px; border: 1px solid #b9c1ce; border-radius: var(--radius); font: inherit; }
-.toolbar input { min-width: 300px; }
+.toolbar input { min-width: 220px; }
+.toolbar input[type=number], .toolbar input[type=date] { min-width: 0; }
+.toolbar label { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; }
 .grid { width: 100%; border-collapse: collapse; }
 .grid th { text-align: left; font-weight: 600; font-size: 14px; color: var(--muted); padding: 10px 16px; background: #f8f9fb; border-bottom: 1px solid var(--line); white-space: nowrap; }
 .grid td { padding: 10px 16px; border-bottom: 1px solid var(--line); vertical-align: middle; }
