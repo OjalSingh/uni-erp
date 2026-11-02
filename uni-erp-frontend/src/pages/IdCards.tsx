@@ -2,7 +2,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { api } from '../api.ts'
 import { useAuth } from '../auth.tsx'
 import PrintPage, { Selectable } from '../components/PrintPage.tsx'
-import { INSTITUTE_NAME, SESSIONS } from '../constants.ts'
+import { INSTITUTE_NAME } from '../constants.ts'
+import { useSessions } from '../lookups.ts'
 import { errMsg, fmtDate } from '../format.ts'
 
 interface Card {
@@ -25,7 +26,9 @@ interface CenterOpt {
 
 export default function IdCards() {
   const { user } = useAuth()
-  const [session, setSession] = useState(SESSIONS[1])
+  const { sessions, current, loaded } = useSessions()
+  const [session, setSession] = useState('')
+  useEffect(() => { if (loaded && !session) setSession(current) }, [loaded, current, session])
   const [center, setCenter] = useState('')
   const [centers, setCenters] = useState<CenterOpt[]>([])
   const [search, setSearch] = useState('')
@@ -38,6 +41,7 @@ export default function IdCards() {
   }, [])
 
   const load = useCallback(() => {
+    if (!session) return
     setError('')
     api<Card[]>(`/students/id-cards?${new URLSearchParams({ session, center, search })}`)
       .then((c) => { setCards(c); setSkip([]) })
@@ -55,7 +59,7 @@ export default function IdCards() {
           <label>
             Session{' '}
             <select value={session} onChange={(e) => setSession(e.target.value)}>
-              {SESSIONS.map((s) => (
+              {sessions.map((s) => (
                 <option key={s}>{s}</option>
               ))}
             </select>

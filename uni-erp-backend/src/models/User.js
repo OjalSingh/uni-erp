@@ -11,6 +11,8 @@ const userSchema = new mongoose.Schema(
     email: { type: String, trim: true, lowercase: true, match: [/^[^\s@]+@[^\s@]+\.[^\s@]+$/, "Enter a valid email address"] },
     mobile: { type: String, trim: true, match: [/^[6-9]\d{9}$/, "Mobile number must be 10 digits and start with 6, 7, 8 or 9"] },
     role: { type: String, enum: ROLES, required: true },
+    // Which configurable role (Miscellaneous > User Role) the user holds; "role" above is that role's base role
+    roleRef: { type: mongoose.Schema.Types.ObjectId, ref: "Role" },
     center: { type: mongoose.Schema.Types.ObjectId, ref: "Center" },
     password: { type: String, required: true, select: false },
     active: { type: Boolean, default: true },

@@ -20,6 +20,12 @@ npm install
 npm run dev              # http://localhost:5173, /api is proxied to :5000
 ```
 
+## Settings (Miscellaneous)
+
+Course Type, Course Details, Subject Details, User Role, Financial year, State, City, Menu and Sub Menu are all editable in the app.
+Run `npm run seed` after pulling to load the default states, financial years, menus and roles (existing settings are kept).
+A role's *base role* decides what the API allows; its *menus* decide what shows in the sidebar.
+
 ## What exists
 
 - Login (`POST /api/auth/login`, JWT) with two roles: `admin` (head office) and `center` (scoped to its own center).

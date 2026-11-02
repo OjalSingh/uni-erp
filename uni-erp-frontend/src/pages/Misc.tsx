@@ -2,7 +2,10 @@ import { useCallback, useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { useParams } from 'react-router-dom'
 import { api } from '../api.ts'
-import { errMsg } from '../format.ts'
+import MasterTable from '../components/MasterTable.tsx'
+import { CENTER_MENUS } from '../constants.ts'
+import { errMsg, fmtDate } from '../format.ts'
+import { GROUPS, MISC } from '../modules.ts'
 
 interface CourseType {
   _id: string
@@ -293,6 +296,142 @@ function Subjects() {
   )
 }
 
+
+const on = (v: boolean) => <span className={`status ${v ? 'on' : 'off'}`}>{v ? 'Active' : 'Off'}</span>
+
+interface StateRow { _id: string; name: string; active: boolean }
+interface CityRow { _id: string; name: string; active: boolean; state: { _id: string; name: string } }
+interface YearRow { _id: string; label: string; startDate?: string; endDate?: string; current: boolean }
+interface MenuRow { _id: string; key: string; label: string; group: string; order: number; active: boolean; system: boolean }
+interface SubMenuRow { _id: string; label: string; order: number; active: boolean; system: boolean; menu: { _id: string; label: string } }
+interface RoleRow { _id: string; key: string; name: string; baseRole: 'admin' | 'center'; menus: string[]; active: boolean; system: boolean }
+interface Screen { key: string; label: string }
+
+function States() {
+  return (
+    <MasterTable<StateRow>
+      endpoint="/config/states" noun="state" initial={{ active: true }}
+      fields={[{ key: 'name', label: 'State', required: true }, { key: 'active', label: 'Active', type: 'checkbox' }]}
+      columns={[{ label: 'State', render: (r) => r.name }, { label: 'Status', render: (r) => on(r.active) }]}
+    />
+  )
+}
+
+function Cities() {
+  const [states, setStates] = useState<StateRow[]>([])
+  useEffect(() => { api<StateRow[]>('/config/states').then(setStates).catch(() => undefined) }, [])
+  return (
+    <MasterTable<CityRow>
+      endpoint="/config/cities" noun="city" initial={{ active: true }}
+      fields={[
+        { key: 'state', label: 'State', type: 'select', required: true, lockOnEdit: true, options: states.map((s) => ({ value: s._id, label: s.name })) },
+        { key: 'name', label: 'City', required: true },
+        { key: 'active', label: 'Active', type: 'checkbox' },
+      ]}
+      columns={[{ label: 'State', render: (r) => r.state?.name }, { label: 'City', render: (r) => r.name }, { label: 'Status', render: (r) => on(r.active) }]}
+    />
+  )
+}
+
+function FinancialYears() {
+  return (
+    <MasterTable<YearRow>
+      endpoint="/config/financial-years" noun="financial year"
+      note="These are the sessions offered on student registration, ID cards and the student list. Mark one as current to make it the default."
+      fields={[
+        { key: 'label', label: 'Year', required: true, lockOnEdit: true, placeholder: '2026-27' },
+        { key: 'startDate', label: 'Starts', type: 'date' },
+        { key: 'endDate', label: 'Ends', type: 'date' },
+        { key: 'current', label: 'Current', type: 'checkbox' },
+      ]}
+      columns={[
+        { label: 'Year', render: (r) => r.label },
+        { label: 'Starts', render: (r) => fmtDate(r.startDate) },
+        { label: 'Ends', render: (r) => fmtDate(r.endDate) },
+        { label: 'Current', render: (r) => (r.current ? 'Yes' : '') },
+      ]}
+    />
+  )
+}
+
+function Menus() {
+  const [screens, setScreens] = useState<Screen[]>([])
+  useEffect(() => { api<Screen[]>('/config/screens').then(setScreens).catch(() => undefined) }, [])
+  return (
+    <MasterTable<MenuRow>
+      endpoint="/config/menus" noun="menu"
+      note="Controls the sidebar and dashboard: name, group, order and whether a menu is shown. Roles decide who sees each menu."
+      initial={{ active: true, order: '0' }}
+      fields={[
+        { key: 'key', label: 'Screen', type: 'select', required: true, lockOnEdit: true, options: screens.map((s) => ({ value: s.key, label: s.label })) },
+        { key: 'label', label: 'Menu name', required: true },
+        { key: 'group', label: 'Group', type: 'select', required: true, options: GROUPS.map((g) => ({ value: g, label: g })) },
+        { key: 'order', label: 'Order', type: 'number' },
+        { key: 'active', label: 'Shown', type: 'checkbox' },
+      ]}
+      columns={[
+        { label: 'Order', render: (r) => r.order },
+        { label: 'Menu name', render: (r) => r.label },
+        { label: 'Group', render: (r) => r.group },
+        { label: 'Status', render: (r) => on(r.active) },
+      ]}
+    />
+  )
+}
+
+function SubMenus() {
+  const [menus, setMenus] = useState<MenuRow[]>([])
+  useEffect(() => { api<MenuRow[]>('/config/menus').then(setMenus).catch(() => undefined) }, [])
+  return (
+    <MasterTable<SubMenuRow>
+      endpoint="/config/sub-menus" noun="sub menu"
+      note="Only the Miscellaneous menu has sub menus."
+      initial={{ active: true, order: '0' }}
+      fields={[
+        { key: 'menu', label: 'Menu', type: 'select', required: true, lockOnEdit: true, options: menus.filter((m) => m.key === 'misc').map((m) => ({ value: m._id, label: m.label })) },
+        { key: 'label', label: 'Screen', type: 'select', required: true, lockOnEdit: true, options: MISC.map((m) => ({ value: m, label: m })) },
+        { key: 'order', label: 'Order', type: 'number' },
+        { key: 'active', label: 'Shown', type: 'checkbox' },
+      ]}
+      columns={[
+        { label: 'Order', render: (r) => r.order },
+        { label: 'Screen', render: (r) => r.label },
+        { label: 'Menu', render: (r) => r.menu?.label },
+        { label: 'Status', render: (r) => on(r.active) },
+      ]}
+    />
+  )
+}
+
+function Roles() {
+  const [screens, setScreens] = useState<Screen[]>([])
+  useEffect(() => { api<Screen[]>('/config/screens').then(setScreens).catch(() => undefined) }, [])
+  return (
+    <MasterTable<RoleRow>
+      endpoint="/config/roles" noun="role"
+      note="The base role decides what the system allows: Admin can use everything, Center only its own center's records. The menus you tick decide what appears in the sidebar. Everyone can change their own password."
+      initial={{ active: true, baseRole: 'center' }}
+      fields={[
+        { key: 'name', label: 'Role name', required: true },
+        { key: 'key', label: 'Key', required: true, lockOnEdit: true, placeholder: 'accounts' },
+        { key: 'baseRole', label: 'Base role', type: 'select', required: true, lockOnEdit: true, options: [{ value: 'admin', label: 'Admin (head office)' }, { value: 'center', label: 'Center' }] },
+        { key: 'active', label: 'Active', type: 'checkbox' },
+        {
+          key: 'menus', label: 'Menus shown in the sidebar', type: 'multi',
+          options: (form) => screens.filter((s) => s.key !== 'change-password' && (form.baseRole === 'admin' || CENTER_MENUS.includes(s.key))).map((s) => ({ value: s.key, label: s.label })),
+        },
+      ]}
+      columns={[
+        { label: 'Role', render: (r) => r.name },
+        { label: 'Key', render: (r) => r.key },
+        { label: 'Base role', render: (r) => (r.baseRole === 'admin' ? 'Admin' : 'Center') },
+        { label: 'Menus', render: (r) => r.menus.filter((m) => m !== 'change-password').length },
+        { label: 'Status', render: (r) => on(r.active) },
+      ]}
+    />
+  )
+}
+
 export default function Misc() {
   const { name = '' } = useParams()
   return (
@@ -301,7 +440,13 @@ export default function Misc() {
       {name === 'Course Type' && <CourseTypes />}
       {name === 'Course Details' && <Courses />}
       {name === 'Subject Details' && <Subjects />}
-      {!['Course Type', 'Course Details', 'Subject Details'].includes(name) && (
+      {name === 'User Role' && <Roles />}
+      {name === 'Financial year' && <FinancialYears />}
+      {name === 'State' && <States />}
+      {name === 'City' && <Cities />}
+      {name === 'Menu' && <Menus />}
+      {name === 'Sub Menu' && <SubMenus />}
+      {!MISC.includes(name) && (
         <section className="panel empty">
           <p>This screen has not been built yet.</p>
         </section>

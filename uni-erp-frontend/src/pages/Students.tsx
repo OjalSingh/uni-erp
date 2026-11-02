@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api.ts'
-import { SESSIONS } from '../constants.ts'
+import { useSessions } from '../lookups.ts'
 
 interface Student {
   _id: string
@@ -23,13 +23,16 @@ interface Page {
 }
 
 export default function Students() {
-  const [session, setSession] = useState(SESSIONS[1])
+  const { sessions, current, loaded } = useSessions()
+  const [session, setSession] = useState('')
+  useEffect(() => { if (loaded && !session) setSession(current) }, [loaded, current, session])
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [data, setData] = useState<Page | null>(null)
   const [error, setError] = useState('')
 
   const load = useCallback(() => {
+    if (!session) return
     const q = new URLSearchParams({ session, search, page: String(page), limit: '10' })
     api<Page>(`/students?${q}`).then(setData).catch((e: Error) => setError(e.message))
   }, [session, search, page])
@@ -65,7 +68,7 @@ export default function Students() {
               setPage(1)
             }}
           >
-            {SESSIONS.map((s) => (
+            {sessions.map((s) => (
               <option key={s}>{s}</option>
             ))}
           </select>

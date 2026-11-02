@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { api } from '../api.ts'
 import { useAuth } from '../auth.tsx'
-import { INDIAN_STATES } from '../constants.ts'
+import { useStates } from '../lookups.ts'
 import { errMsg } from '../format.ts'
 
 interface Center {
@@ -39,6 +39,7 @@ export default function Centers() {
   const [editId, setEditId] = useState<string | null>(null)
   const [open, setOpen] = useState(false)
   const [error, setError] = useState('')
+  const stateNames = useStates()
 
   const load = useCallback(() => {
     api<Center[]>('/centers').then(setRows).catch((e) => setError(errMsg(e)))
@@ -114,7 +115,7 @@ export default function Centers() {
               <label>State</label>
               <select value={form.state} onChange={(e) => set('state', e.target.value)}>
                 <option value="">Select state</option>
-                {INDIAN_STATES.map((s) => <option key={s}>{s}</option>)}
+                {stateNames.map((s) => <option key={s}>{s}</option>)}
               </select>
               {text('city', 'City')}
               {text('pinCode', 'Pin code', { maxLength: 6, digits: true })}

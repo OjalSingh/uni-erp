@@ -3,7 +3,8 @@ import type { FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api, getToken } from '../api.ts'
 import { useAuth } from '../auth.tsx'
-import { INDIAN_STATES, SESSIONS } from '../constants.ts'
+import { SESSIONS } from '../constants.ts'
+import { useCities, useSessions, useStates } from '../lookups.ts'
 
 interface Option {
   _id: string
@@ -83,6 +84,9 @@ export default function StudentForm() {
   const { user } = useAuth()
 
   const [form, setForm] = useState<FormState>(initial)
+  const { sessions, current, loaded } = useSessions()
+  const stateNames = useStates()
+  const cityNames = useCities(form.state)
   const [enrollNo, setEnrollNo] = useState('')
   const [centers, setCenters] = useState<Option[]>([])
   const [courseTypes, setCourseTypes] = useState<Option[]>([])
@@ -92,6 +96,11 @@ export default function StudentForm() {
   const [pinNote, setPinNote] = useState('')
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) => setForm((f) => ({ ...f, [key]: value }))
+
+  // New registrations start in the current session
+  useEffect(() => {
+    if (!editing && loaded) set('session', current)
+  }, [editing, loaded, current])
 
   // Lookups
   useEffect(() => {
@@ -175,7 +184,7 @@ export default function StudentForm() {
       setForm((f) => ({
         ...f,
         pinCode: pin,
-        state: INDIAN_STATES.includes(office.State) ? office.State : f.state,
+        state: stateNames.includes(office.State) ? office.State : f.state,
         city: office.District ?? f.city,
       }))
     } catch {
@@ -233,7 +242,7 @@ export default function StudentForm() {
           </span>
           <label className="req">Session</label>
           <select value={form.session} disabled={editing} onChange={(e) => set('session', e.target.value)}>
-            {SESSIONS.map((s) => (
+            {Array.from(new Set([form.session, ...sessions])).map((s) => (
               <option key={s}>{s}</option>
             ))}
           </select>
@@ -317,12 +326,17 @@ export default function StudentForm() {
           <label>State</label>
           <select value={form.state} onChange={(e) => set('state', e.target.value)}>
             <option value="">Select State</option>
-            {INDIAN_STATES.map((s) => (
+            {stateNames.map((s) => (
               <option key={s}>{s}</option>
             ))}
           </select>
           <label>City</label>
-          <input value={form.city} onChange={(e) => set('city', e.target.value)} />
+          <input list="city-options" value={form.city} onChange={(e) => set('city', e.target.value)} />
+          <datalist id="city-options">
+            {cityNames.map((c) => (
+              <option key={c} value={c} />
+            ))}
+          </datalist>
           <label>Pin Code</label>
           <input inputMode="numeric" maxLength={6} value={form.pinCode} onChange={(e) => lookupPin(e.target.value.replace(/\D/g, ''))} />
           {pinNote && <span className="hint">{pinNote}</span>}

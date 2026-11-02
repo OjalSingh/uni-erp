@@ -1,11 +1,16 @@
 import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../auth.tsx'
-import { GROUPS, MISC, MODULES } from '../modules.ts'
+import { useNavigation } from '../nav.ts'
+import { GROUPS } from '../modules.ts'
 
 export default function Layout() {
   const { user, logout } = useAuth()
-  const [miscOpen, setMiscOpen] = useState(false)
+  const menus = useNavigation()
+  const [openKey, setOpenKey] = useState<string | null>(null)
+
+  // Known groups first, in their usual order, then any group an admin has introduced
+  const groups = [...GROUPS, ...menus.map((m) => m.group).filter((g) => !GROUPS.includes(g))].filter((g, i, a) => a.indexOf(g) === i)
 
   return (
     <div className="shell">
@@ -18,30 +23,35 @@ export default function Layout() {
           <NavLink to="/" end>
             Dashboard
           </NavLink>
-          {GROUPS.map((g) => (
-            <div key={g} className="nav-group">
-              <div className="nav-heading">{g}</div>
-              {MODULES.filter((m) => m.group === g && (!m.adminOnly || user?.role === 'admin')).map((m) => (
-                <NavLink key={m.path} to={`/${m.path}`}>
-                  {m.label}
-                </NavLink>
-              ))}
-              {g === 'Resources' && user?.role === 'admin' && (
-                <>
-                  <button className="navbtn" aria-expanded={miscOpen} onClick={() => setMiscOpen((o) => !o)}>
-                    Miscellaneous
-                    <span className="count">{MISC.length}</span>
-                  </button>
-                  {miscOpen &&
-                    MISC.map((name) => (
-                      <NavLink key={name} className="sub" to={`/misc/${encodeURIComponent(name)}`}>
-                        {name}
-                      </NavLink>
-                    ))}
-                </>
-              )}
-            </div>
-          ))}
+          {groups.map((g) => {
+            const inGroup = menus.filter((m) => m.group === g)
+            if (inGroup.length === 0) return null
+            return (
+              <div key={g} className="nav-group">
+                <div className="nav-heading">{g}</div>
+                {inGroup.map((m) =>
+                  m.submenus.length > 0 || m.key === 'misc' ? (
+                    <div key={m.key}>
+                      <button className="navbtn" aria-expanded={openKey === m.key} onClick={() => setOpenKey(openKey === m.key ? null : m.key)}>
+                        {m.label}
+                        <span className="count">{m.submenus.length}</span>
+                      </button>
+                      {openKey === m.key &&
+                        m.submenus.map((s) => (
+                          <NavLink key={s.label} className="sub" to={`/misc/${encodeURIComponent(s.label)}`}>
+                            {s.label}
+                          </NavLink>
+                        ))}
+                    </div>
+                  ) : (
+                    <NavLink key={m.key} to={`/${m.key}`}>
+                      {m.label}
+                    </NavLink>
+                  )
+                )}
+              </div>
+            )
+          })}
         </nav>
       </aside>
       <div className="main">
