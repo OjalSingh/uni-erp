@@ -45,6 +45,21 @@ Run `npm run seed` after pulling to create the six levels and one test login for
 - `npm run seed` prints a random password for each new test login once. Delete the test logins before real use.
 - `npm run rbac-selftest` calls every endpoint as each level and checks it is allowed or blocked as the permissions say.
 
+## Marks, certificates and student results
+
+- **Marks (Mark Information):** enter a roll number and the exam schedule; the screen loads the course's subjects for that student's part
+  (Theory and Practical papers with their maximum marks), shows the Part 1 total for Part 2 students, and saves all subjects together.
+  Totals and the division update as you type. Subjects, types and maximum marks are set in Miscellaneous > Subject Details; a course with
+  no subjects set up cannot have marks entered.
+- **Results:** Division I is 60% and above, II is 45% and above, III is 33% and above (as printed on the stationery). A student qualifies when
+  theory and practical are each at least 33%. A result with a missing paper is "incomplete": it counts the missing paper as zero, never shows
+  a division, and blocks printing until the marks are completed. Courses with several parts get a combined final result from the total of all parts.
+- **Certificates and mark statements:** print on pre-printed stationery (only the blanks are printed; use "Move right/down" to line up
+  your paper) or on plain A4 with the full design. Put `seal.png` and `uaf.png` in `uni-erp-frontend/public/branding/` to show your logos.
+- **Student result page:** `/result` needs no login. Students enter their roll number and a picture captcha and see their mark statement
+  while a published result is inside its dates. Lookups are rate limited per address. Roll numbers are guessable, so set
+  `RESULT_REQUIRE_DOB=true` in `uni-erp-backend/.env` to also ask for the date of birth (dd/mm/yyyy).
+
 ## Importing the old database (MySQL dump)
 
 ```

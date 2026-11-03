@@ -15,6 +15,7 @@ interface Course {
   name: string
   code?: string
   parts: number
+  durationYears?: number
   courseType: CourseType
 }
 interface Subject {
@@ -96,7 +97,7 @@ function CourseTypes() {
   )
 }
 
-const blankCourse = { courseType: '', name: '', code: '', parts: '1' }
+const blankCourse = { courseType: '', name: '', code: '', parts: '1', durationYears: '' }
 
 function Courses() {
   const [rows, setRows] = useState<Course[]>([])
@@ -119,7 +120,7 @@ function Courses() {
     e.preventDefault()
     setError('')
     try {
-      const body = { ...form, parts: Number(form.parts) }
+      const body = { ...form, parts: Number(form.parts), durationYears: form.durationYears === '' ? undefined : Number(form.durationYears) }
       if (editId) await api(`/masters/courses/${editId}`, { method: 'PUT', body })
       else await api('/masters/courses', { method: 'POST', body })
       setForm(blankCourse)
@@ -147,6 +148,10 @@ function Courses() {
           Parts{' '}
           <input type="number" min={1} max={6} style={{ width: 64 }} value={form.parts} onChange={(e) => set('parts', e.target.value)} />
         </label>
+        <label>
+          Duration (years){' '}
+          <input type="number" min={0.25} max={6} step={0.25} style={{ width: 80 }} value={form.durationYears} onChange={(e) => set('durationYears', e.target.value)} />
+        </label>
         <span>
           <button className="btn-save" type="submit">
             {editId ? 'Save course' : 'Add course'}
@@ -166,6 +171,7 @@ function Courses() {
             <th>Course name</th>
             <th>Code</th>
             <th>Parts</th>
+            <th>Duration</th>
             <th>Action</th>
           </tr>
         </thead>
@@ -176,10 +182,11 @@ function Courses() {
               <td>{r.name}</td>
               <td>{r.code}</td>
               <td>{r.parts}</td>
+              <td>{r.durationYears ? (r.durationYears < 1 ? `${Math.round(r.durationYears * 12)} months` : `${r.durationYears} year${r.durationYears === 1 ? '' : 's'}`) : ''}</td>
               <td>
                 <button
                   className="btn-mod"
-                  onClick={() => { setEditId(r._id); setForm({ courseType: r.courseType?._id ?? '', name: r.name, code: r.code ?? '', parts: String(r.parts) }) }}
+                  onClick={() => { setEditId(r._id); setForm({ courseType: r.courseType?._id ?? '', name: r.name, code: r.code ?? '', parts: String(r.parts), durationYears: r.durationYears === undefined ? '' : String(r.durationYears) }) }}
                 >
                   Modify
                 </button>
@@ -279,6 +286,15 @@ function Subjects() {
         </span>
       </form>
       <Notice error={error} />
+      {rows.length > 0 && (
+        <p className="hint pad">
+          {['Theory', 'Practical'].map((t) => {
+            const list = rows.filter((r) => r.type === t)
+            return list.length ? `${t}: ${list.length} paper${list.length === 1 ? '' : 's'}, ${list.reduce((n, r) => n + (r.maxMarks ?? 0), 0)} marks` : null
+          }).filter(Boolean).join('  ·  ')}
+          {'  ·  '}Total: {rows.reduce((n, r) => n + (r.maxMarks ?? 0), 0)} marks. Marks can only be entered once every subject has a type and maximum.
+        </p>
+      )}
       <table className="grid">
         <thead>
           <tr>

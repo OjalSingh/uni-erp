@@ -13,19 +13,19 @@ router.use(requireAuth);
 router.get("/schedules", requirePermission("exams:view", "marks:view", "results:view", "admitcards:print"), async (_req, res) => res.json(await ExamSchedule.find().sort({ examId: -1 })));
 
 router.post("/schedules", requirePermission("exams:schedule"), (req, res) => {
-  const { examTerm, year, formStart, formEnd } = req.body || {};
+  const { examTerm, year, formStart, formEnd, session } = req.body || {};
   return guarded(res, async () => {
     const examId = await nextNumber(ExamSchedule, "examId");
-    res.status(201).json(await ExamSchedule.create({ examId, examTerm, year, formStart, formEnd }));
+    res.status(201).json(await ExamSchedule.create({ examId, examTerm, year, formStart, formEnd, session }));
   });
 });
 
 router.put("/schedules/:id", requirePermission("exams:schedule"), (req, res) => {
-  const { examTerm, year, formStart, formEnd } = req.body || {};
+  const { examTerm, year, formStart, formEnd, session } = req.body || {};
   return guarded(res, async () => {
     const s = await ExamSchedule.findById(req.params.id);
     if (!s) return res.status(404).json({ message: "Schedule not found" });
-    Object.assign(s, { examTerm, year, formStart, formEnd });
+    Object.assign(s, { examTerm, year, formStart, formEnd, session });
     await s.save();
     res.json(s);
   });
