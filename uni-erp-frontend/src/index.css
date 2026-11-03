@@ -299,3 +299,20 @@ a { color: var(--accent); }
 .pub-summary { margin-top: 14px; }
 .pub-warn { background: #fff6e5; border: 1px solid #f0d9a8; padding: 10px 14px; border-radius: var(--radius); }
 @media print { .pub { background: #fff; } .pub-card { border: 0; padding: 0; } }
+
+/* ---------- ID card (matches the printed 2025-26 card) ---------- */
+.idcard2 { width: 54mm; min-height: 86mm; background: #fff; border: 1px solid #999; font-size: 8px; display: flex; flex-direction: column; break-inside: avoid; overflow: hidden; }
+.id2-head { background: linear-gradient(#1c6fc4, #4aa3e8); color: #fff; text-align: center; padding: 4px 3px; line-height: 1.2; }
+.id2-head b { display: block; font-family: var(--serif); font-size: 9px; }
+.id2-head small { font-size: 6px; }
+.id2-title { background: #a4262c; color: #fff; text-align: center; font-weight: 700; font-size: 11px; padding: 2px 0; }
+.id2-row { display: flex; justify-content: space-between; padding: 3px 5px 0; }
+.id2-row b { font-size: 8px; }
+.id2-course { padding: 2px 5px; }
+.id2-photo { width: 24mm; height: 28mm; object-fit: cover; align-self: center; border: 1px solid #888; margin: 3px 0; }
+.id2-photo.blank { display: grid; place-items: center; color: var(--muted); }
+.id2-name { text-align: center; font-size: 10px; font-weight: 600; text-transform: uppercase; }
+.id2-line { padding: 1px 5px; }
+.id2-line em { font-style: normal; color: #a4262c; }
+.id2-foot { margin-top: auto; background: #12326b; color: #fff; text-align: center; padding: 3px; font-size: 7px; }
+@media print { .id-grid { grid-template-columns: repeat(3, 54mm); } }
