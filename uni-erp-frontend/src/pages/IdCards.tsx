@@ -1,3 +1,4 @@
+import Watermark from '../components/Watermark.tsx'
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '../api.ts'
 import { useAuth } from '../auth.tsx'
@@ -91,7 +92,8 @@ export default function IdCards() {
       <div className="id-grid">
         {cards.map((c) => (
           <Selectable key={c._id} on={!skip.includes(c._id)} onToggle={() => toggle(c._id)} label={`${c.name} (${c.enrollNo})`}>
-            <article className="idcard2">
+            <article className="idcard2 wm-host">
+              <Watermark />
               <div className="id2-head">
                 <b>{INSTITUTE_NAME}</b>
                 <small>Regd. by Govt. of NCT, New Delhi</small>
