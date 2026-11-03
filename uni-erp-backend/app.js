@@ -11,6 +11,7 @@ app.use(express.json());
 
 app.get("/", (_req, res) => res.send("Backend running"));
 app.get("/api/test", (_req, res) => res.json({ message: "Hello from backend" }));
+app.use("/api/public", require("./src/routes/public")); // no login: students checking results
 app.use("/api/auth", require("./src/routes/auth"));
 app.use("/api/dashboard", require("./src/routes/dashboard"));
 app.use("/api/centers", require("./src/routes/centers"));

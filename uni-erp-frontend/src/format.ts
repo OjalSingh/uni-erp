@@ -7,10 +7,11 @@ export interface Schedule {
   examId: number
   examTerm: string
   year: number
+  session?: string
   formStart: string
   formEnd: string
 }
-export const scheduleLabel = (s: Schedule) => `Exam ${s.examId}: ${s.examTerm} ${s.year}`
+export const scheduleLabel = (s: Schedule) => `Exam ${s.examId}: ${s.examTerm} ${s.year}${s.session ? ` (${s.session})` : ''}`
 
 export interface Paged<T> {
   items: T[]

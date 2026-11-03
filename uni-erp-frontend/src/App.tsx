@@ -18,6 +18,7 @@ import Books from './pages/Books.tsx'
 import BookNew from './pages/BookNew.tsx'
 import BookDetail from './pages/BookDetail.tsx'
 import Stock from './pages/Stock.tsx'
+import Result from './pages/Result.tsx'
 import AdmitCards from './pages/AdmitCards.tsx'
 import IdCards from './pages/IdCards.tsx'
 import Certificates from './pages/Certificates.tsx'
@@ -49,6 +50,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/result" element={<Result />} />
       <Route
         path="/"
         element={

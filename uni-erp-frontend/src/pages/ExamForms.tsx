@@ -4,6 +4,7 @@ import { api } from '../api.ts'
 import { useAuth } from '../auth.tsx'
 import Pager from '../components/Pager.tsx'
 import ScheduleSelect from '../components/ScheduleSelect.tsx'
+import { useSessions } from '../lookups.ts'
 import { errMsg, fmtDate } from '../format.ts'
 import type { Paged, Schedule } from '../format.ts'
 
@@ -21,6 +22,7 @@ interface ExamForm {
 
 export default function ExamForms() {
   const { can } = useAuth()
+  const { sessions } = useSessions()
   const canReview = can('exams:review')
   const canSchedule = can('exams:schedule')
   const canCreate = can('exams:create')
@@ -31,7 +33,7 @@ export default function ExamForms() {
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState<string[]>([])
   const [add, setAdd] = useState({ enrollNo: '', part: '1', medium: 'Hindi' })
-  const [newSched, setNewSched] = useState({ examTerm: 'May-June', year: String(new Date().getFullYear()), formStart: '', formEnd: '' })
+  const [newSched, setNewSched] = useState({ examTerm: 'May-June', year: String(new Date().getFullYear()), session: '', formStart: '', formEnd: '' })
   const [showSched, setShowSched] = useState(false)
   const [error, setError] = useState('')
 
@@ -118,6 +120,15 @@ export default function ExamForms() {
             </label>
             <label>
               Year <input type="number" required style={{ width: 90 }} value={newSched.year} onChange={(e) => setNewSched((s) => ({ ...s, year: e.target.value }))} />
+            </label>
+            <label>
+              Session{' '}
+              <select value={newSched.session} onChange={(e) => setNewSched((s) => ({ ...s, session: e.target.value }))}>
+                <option value="">Not set</option>
+                {sessions.map((s) => (
+                  <option key={s}>{s}</option>
+                ))}
+              </select>
             </label>
             <label>
               Forms open <input type="date" required value={newSched.formStart} onChange={(e) => setNewSched((s) => ({ ...s, formStart: e.target.value }))} />

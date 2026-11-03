@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import { Navigate, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth.tsx'
 
 export default function Login() {
@@ -48,6 +48,9 @@ export default function Login() {
           <button type="submit" className="btn-primary" disabled={busy || !username || !password}>
             {busy ? 'Signing in...' : 'Sign in'}
           </button>
+          <p className="login-student">
+            Student? <Link to="/result">Check your result</Link>
+          </p>
         </form>
       </section>
     </div>

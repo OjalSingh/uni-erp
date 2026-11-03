@@ -17,6 +17,7 @@ class Schema {
   virtual() { return { get() {} }; }
 }
 Schema.Types = { ObjectId: "ObjectId" };
+const fixtures = {}; // per-test overrides such as fixtures["Mark.findOne"] = () => chain(doc)
 const users = new Map();
 const roles = new Map();
 const fakeMongoose = {
@@ -24,6 +25,7 @@ const fakeMongoose = {
   model(name) {
     return new Proxy(function () {}, {
       get(_t, prop) {
+        if (fixtures[`${name}.${String(prop)}`]) return fixtures[`${name}.${String(prop)}`];
         if (name === "User" && prop === "findById") return async (id) => users.get(String(id)) || null;
         if (name === "Role" && prop === "findById") return (id) => chain(roles.get(String(id)) || null);
         if (name === "Role" && prop === "findOne") return (f) => chain([...roles.values()].find((r) => r.key === f.key) || null);
@@ -52,7 +54,7 @@ const { ROLE_DEFAULTS } = require("./lib/permissions");
 
 const app = express();
 app.use(express.json());
-for (const [path, file] of [["students", "students"], ["centers", "centers"], ["employees", "employees"], ["exams", "exams"], ["marks", "marks"], ["results", "results"], ["certificates", "certificates"], ["stock", "stock"], ["invoices", "invoices"], ["masters", "masters"], ["config", "config"], ["dashboard", "dashboard"]]) app.use(`/api/${path}`, require(`./routes/${file}`));
+for (const [path, file] of [["students", "students"], ["centers", "centers"], ["employees", "employees"], ["exams", "exams"], ["marks", "marks"], ["results", "results"], ["certificates", "certificates"], ["stock", "stock"], ["invoices", "invoices"], ["masters", "masters"], ["config", "config"], ["dashboard", "dashboard"], ["public", "public"]]) app.use(`/api/${path}`, require(`./routes/${file}`));
 app.use((err, _req, res, _next) => res.status(500).json({ message: "handler ran: " + err.message }));
 
 // ---- Endpoint table: [method, path, permissions where holding ANY one allows it (null = any signed-in user)] ----
@@ -64,7 +66,7 @@ const E = [
   ["GET", "/exams/schedules", ["exams:view", "marks:view", "results:view", "admitcards:print"]], ["POST", "/exams/schedules", ["exams:schedule"]], ["PUT", "/exams/schedules/abc", ["exams:schedule"]],
   ["GET", "/exams/admit-cards?schedule=x", ["admitcards:print"]], ["GET", "/exams/forms?schedule=x", ["exams:view"]], ["POST", "/exams/forms", ["exams:create"]], ["PUT", "/exams/forms/abc", ["exams:create"]],
   ["POST", "/exams/forms/status", ["exams:review"]], ["DELETE", "/exams/forms/abc", ["exams:create"]],
-  ["GET", "/marks?schedule=x", ["marks:view"]], ["POST", "/marks", ["marks:edit"]], ["PUT", "/marks/abc", ["marks:edit"]], ["DELETE", "/marks/abc", ["marks:edit"]],
+  ["GET", "/marks?schedule=x", ["marks:view"]], ["GET", "/marks/entry?schedule=x&rollNo=1", ["marks:edit"]], ["POST", "/marks/entry", ["marks:edit"]], ["DELETE", "/marks/abc", ["marks:edit"]],
   ["GET", "/results", ["results:view"]], ["POST", "/results", ["results:manage"]], ["POST", "/results/abc/publish", ["results:manage"]],
   ["GET", "/certificates", ["certificates:print"]], ["GET", "/certificates/schedules", ["certificates:print"]],
   ["GET", "/stock/summary", ["stock:view"]], ["GET", "/stock/entries", ["stock:view"]], ["POST", "/stock/entries", ["stock:manage"]], ["DELETE", "/stock/items/abc", ["stock:manage"]],
@@ -126,6 +128,59 @@ const E = [
   const b = await call("POST", "/stock/entries", t, "{}");
   const c = await call("GET", "/students", t);
   console.log(`${a.status === 403 && b.status === 403 && c.status !== 403 ? "PASS" : "FAIL"}  center role with head-office permissions in the database still cannot use them`);
+
+  // ---- Public result page: no login, captcha, roll number ----
+  const digitsOf = (svg) => [...svg.matchAll(/>(\d)<\/text>/g)].map((m) => m[1]).join("");
+  const freshCaptcha = async () => { const r = await call("GET", "/public/captcha", ""); return { token: r.body.token, code: digitsOf(r.body.svg) }; };
+  const lookup = async (rollNo, extra = {}) => { const c = await freshCaptcha(); return call("POST", "/public/result", "", JSON.stringify({ rollNo, captchaToken: c.token, captchaAnswer: c.code, ...extra })); };
+  let publicWrong = 0;
+  const pcheck = (label, ok, extra = "") => { console.log(`${ok ? "PASS" : "FAIL"}  ${label}${extra ? "  " + extra : ""}`); if (!ok) publicWrong++; };
+
+  const day = 86400000;
+  const publish = { publishId: 7, published: true, publishDate: new Date(Date.now() - day), endDate: new Date(Date.now() + day), schedule: { _id: "s1", examTerm: "May-June", year: 2025, session: "2024-25" } };
+  const sm = (type, code, subject, max, marks) => ({ type, code, subject, maxMarks: max, marks });
+  const form = { part: 1, rollNo: "24251234", status: "Accepted", student: { _id: "st1", name: "A Student", fatherName: "A Father", enrollNo: "2451234", dob: new Date("2000-05-17T00:00:00Z") }, course: { _id: "c1", name: "One Year Diploma", parts: 1, courseType: { name: "NTT" } }, schedule: { _id: "s1", examTerm: "May-June", year: 2025, session: "2024-25" } };
+  const expected = [{ type: "Theory", code: "I", name: "T1", maxMarks: 100 }, { type: "Practical", code: "I", name: "P1", maxMarks: 100 }];
+  fixtures["ResultPublish.find"] = () => chain([publish]);
+  fixtures["ExamForm.find"] = () => chain([form]);
+  fixtures["Subject.find"] = () => chain(expected);
+  fixtures["Mark.findOne"] = () => chain({ subjectMarks: [sm("Theory", "I", "T1", 100, 80), sm("Practical", "I", "P1", 100, 70)] });
+  delete process.env.RESULT_REQUIRE_DOB;
+
+  pcheck("status needs no login", (await call("GET", "/public/result-status", "")).status === 200);
+  pcheck("a published result inside its dates is open", (await call("GET", "/public/result-status", "")).body.open?.length === 1);
+  const good = await lookup("24251234");
+  pcheck("roll number + correct captcha returns the result", good.status === 200 && good.body.statements?.[0]?.result?.total?.obtained === 150 && good.body.statements[0].result.theory.division === "I", JSON.stringify(good.body).slice(0, 80));
+  pcheck("result shows no date of birth or center", !JSON.stringify(good.body).includes("dob") && !JSON.stringify(good.body).includes("center"));
+  const wrongCaptcha = await call("POST", "/public/result", "", JSON.stringify({ rollNo: "24251234", captchaToken: (await freshCaptcha()).token, captchaAnswer: "000000" }));
+  pcheck("wrong captcha is refused and asks for a new picture", wrongCaptcha.status === 400 && wrongCaptcha.body.refreshCaptcha === true);
+  const reuse = await freshCaptcha();
+  await call("POST", "/public/result", "", JSON.stringify({ rollNo: "24251234", captchaToken: reuse.token, captchaAnswer: reuse.code }));
+  pcheck("a captcha picture works only once", (await call("POST", "/public/result", "", JSON.stringify({ rollNo: "24251234", captchaToken: reuse.token, captchaAnswer: reuse.code }))).status === 400);
+  pcheck("a roll number that is not digits is refused", (await lookup("12ab")).status === 400);
+
+  fixtures["Mark.findOne"] = () => chain({ subjectMarks: [sm("Theory", "I", "T1", 100, 95)] }); // practical paper missing
+  const incomplete = await lookup("24251234");
+  pcheck("incomplete result is flagged and shows no marks or division", incomplete.status === 200 && incomplete.body.statements[0].result.incomplete === true && !JSON.stringify(incomplete.body).includes("division"), JSON.stringify(incomplete.body.statements?.[0]?.result));
+
+  fixtures["Mark.findOne"] = () => chain({ subjectMarks: [sm("Theory", "I", "T1", 100, 80), sm("Practical", "I", "P1", 100, 70)] });
+  process.env.RESULT_REQUIRE_DOB = "true";
+  pcheck("with the date-of-birth option on, a missing date is refused", (await lookup("24251234")).status === 400);
+  pcheck("with the option on, a wrong date gives the same 'no result' answer", (await lookup("24251234", { dob: "01/01/1999" })).status === 404);
+  pcheck("with the option on, the right date returns the result", (await lookup("24251234", { dob: "17/05/2000" })).status === 200);
+  delete process.env.RESULT_REQUIRE_DOB;
+
+  fixtures["ExamForm.find"] = () => chain([]);
+  const miss = await lookup("24259999");
+  pcheck("unknown roll number gets the generic answer", miss.status === 404 && /No result found/.test(miss.body.message));
+  fixtures["ResultPublish.find"] = () => chain([{ ...publish, published: true, publishDate: new Date(Date.now() + 5 * day), endDate: new Date(Date.now() + 9 * day) }]);
+  pcheck("a result whose date has not come is not available", (await lookup("24251234")).status === 404);
+  pcheck("status then announces the date instead", !!(await call("GET", "/public/result-status", "")).body.upcoming);
+
+  let limited = false;
+  for (let i = 0; i < 80 && !limited; i++) limited = (await call("POST", "/public/result", "", JSON.stringify({ rollNo: "1" }))).status === 429;
+  pcheck("repeated attempts from one address are rate limited", limited);
+  wrong += publicWrong; checks += 14;
 
   console.log(`\n${checks} endpoint checks across 6 levels, ${wrong} wrong`);
   if (server) server.close();
