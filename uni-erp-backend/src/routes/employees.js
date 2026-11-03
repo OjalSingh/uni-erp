@@ -1,12 +1,16 @@
 const express = require("express");
 const User = require("../models/User");
-const { requireAuth, requireRole } = require("../middleware/auth");
+const { requireAuth, requirePermission } = require("../middleware/auth");
 const { guarded } = require("../lib/util");
 const { Role } = require("../models/Config");
+const { effectivePermissions } = require("../lib/permissions");
+
+// Nobody can hand out more access than they hold themselves
+const withinOwn = (req, role) => effectivePermissions(role).every((p) => req.perms.has(p));
 
 // "Employee Details" in the original portal = people who can log in
 const router = express.Router();
-router.use(requireAuth, requireRole("admin"));
+router.use(requireAuth, requirePermission("employees:manage"));
 
 router.get("/", async (_req, res) => res.json(await User.find().populate("center", "code name").populate("roleRef", "key name").sort({ createdAt: 1 })));
 
@@ -18,6 +22,7 @@ router.post("/", (req, res) => {
     async () => {
       const role = await Role.findOne({ key: roleKey, active: true });
       if (!role) return res.status(400).json({ message: "Choose an active role" });
+      if (!withinOwn(req, role)) return res.status(403).json({ message: "You cannot give someone more access than you have" });
       if (role.baseRole === "center" && !center) return res.status(400).json({ message: "Choose a center for a center login" });
       const user = await User.create({ username, name, email, mobile, role: role.baseRole, roleRef: role._id, center: role.baseRole === "center" ? center : undefined, password });
       res.status(201).json(user);
@@ -36,6 +41,7 @@ router.put("/:id", (req, res) => {
 
     const role = roleKey ? await Role.findOne({ key: roleKey, active: true }) : null;
     if (roleKey && !role) return res.status(400).json({ message: "Choose an active role" });
+    if (role && !withinOwn(req, role)) return res.status(403).json({ message: "You cannot give someone more access than you have" });
     const base = role ? role.baseRole : user.role;
     if (req.params.id === req.user.id && (active === false || base !== req.user.role)) {
       return res.status(400).json({ message: "You cannot deactivate your own account or change its access level" });

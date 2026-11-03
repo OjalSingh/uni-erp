@@ -3,7 +3,6 @@ import type { FormEvent } from 'react'
 import { useParams } from 'react-router-dom'
 import { api } from '../api.ts'
 import MasterTable from '../components/MasterTable.tsx'
-import { CENTER_MENUS } from '../constants.ts'
 import { errMsg, fmtDate } from '../format.ts'
 import { GROUPS, MISC } from '../modules.ts'
 
@@ -319,7 +318,8 @@ interface CityRow { _id: string; name: string; active: boolean; state: { _id: st
 interface YearRow { _id: string; label: string; startDate?: string; endDate?: string; current: boolean }
 interface MenuRow { _id: string; key: string; label: string; group: string; order: number; active: boolean; system: boolean }
 interface SubMenuRow { _id: string; label: string; order: number; active: boolean; system: boolean; menu: { _id: string; label: string } }
-interface RoleRow { _id: string; key: string; name: string; baseRole: 'admin' | 'center'; menus: string[]; active: boolean; system: boolean }
+interface RoleRow { _id: string; key: string; name: string; baseRole: 'admin' | 'center'; permissions?: string[]; active: boolean; system: boolean }
+interface PermissionDef { key: string; label: string; group: string; scopes: string[] }
 interface Screen { key: string; label: string }
 
 function States() {
@@ -419,28 +419,28 @@ function SubMenus() {
 }
 
 function Roles() {
-  const [screens, setScreens] = useState<Screen[]>([])
-  useEffect(() => { api<Screen[]>('/config/screens').then(setScreens).catch(() => undefined) }, [])
+  const [perms, setPerms] = useState<PermissionDef[]>([])
+  useEffect(() => { api<PermissionDef[]>('/config/permissions').then(setPerms).catch(() => undefined) }, [])
   return (
     <MasterTable<RoleRow>
       endpoint="/config/roles" noun="role"
-      note="The base role decides what the system allows: Admin can use everything, Center only its own center's records. The menus you tick decide what appears in the sidebar. Everyone can change their own password."
-      initial={{ active: true, baseRole: 'center' }}
+      note="A role is a level of user. Tick what it may do: the server checks this on every action, and the sidebar only shows what a user can open. 'Own center only' roles can never be given head-office permissions. You can only give permissions you hold yourself."
+      initial={{ active: true, baseRole: 'center', permissions: [] }}
       fields={[
         { key: 'name', label: 'Role name', required: true },
         { key: 'key', label: 'Key', required: true, lockOnEdit: true, placeholder: 'accounts' },
-        { key: 'baseRole', label: 'Base role', type: 'select', required: true, lockOnEdit: true, options: [{ value: 'admin', label: 'Admin (head office)' }, { value: 'center', label: 'Center' }] },
+        { key: 'baseRole', label: 'Can see', type: 'select', required: true, lockOnEdit: true, options: [{ value: 'admin', label: 'Records of all centers' }, { value: 'center', label: 'Own center only' }] },
         { key: 'active', label: 'Active', type: 'checkbox' },
         {
-          key: 'menus', label: 'Menus shown in the sidebar', type: 'multi',
-          options: (form) => screens.filter((s) => s.key !== 'change-password' && (form.baseRole === 'admin' || CENTER_MENUS.includes(s.key))).map((s) => ({ value: s.key, label: s.label })),
+          key: 'permissions', label: 'Permissions', type: 'multi',
+          options: (form) => perms.filter((p) => form.baseRole !== 'center' || p.scopes.includes('center')).map((p) => ({ value: p.key, label: p.label, group: p.group })),
         },
       ]}
       columns={[
         { label: 'Role', render: (r) => r.name },
         { label: 'Key', render: (r) => r.key },
-        { label: 'Base role', render: (r) => (r.baseRole === 'admin' ? 'Admin' : 'Center') },
-        { label: 'Menus', render: (r) => r.menus.filter((m) => m !== 'change-password').length },
+        { label: 'Can see', render: (r) => (r.baseRole === 'admin' ? 'All centers' : 'Own center only') },
+        { label: 'Permissions', render: (r) => (r.permissions ? r.permissions.length : 'default') },
         { label: 'Status', render: (r) => on(r.active) },
       ]}
     />

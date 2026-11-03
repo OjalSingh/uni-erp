@@ -26,6 +26,25 @@ Course Type, Course Details, Subject Details, User Role, Financial year, State, 
 Run `npm run seed` after pulling to load the default states, financial years, menus and roles (existing settings are kept).
 A role's *base role* decides what the API allows; its *menus* decide what shows in the sidebar.
 
+## User levels and permissions
+
+Access is role based and enforced by the server on every request (the sidebar and buttons only mirror it).
+Run `npm run seed` after pulling to create the six levels and one test login for each:
+
+| Level | Sees | Can do (summary) |
+| --- | --- | --- |
+| Super Admin | all centers | everything, including users and settings |
+| Admin | all centers | everything except managing users and settings |
+| Normal User | all centers | register and edit students, review exam forms, print admit and ID cards, view marks and results |
+| Guest User | all centers | view only |
+| Center Admin | own center | register, edit and deactivate students, fill exam forms, print admit and ID cards, view invoices |
+| Center Staff | own center | register and edit students, fill exam forms, print admit and ID cards |
+
+- Roles are edited in Miscellaneous > User Role: tick permissions per role, or add your own levels.
+- A role limited to its own center can never be given head-office permissions, and nobody can give a role (or a user) more access than they hold themselves.
+- `npm run seed` prints a random password for each new test login once. Delete the test logins before real use.
+- `npm run rbac-selftest` calls every endpoint as each level and checks it is allowed or blocked as the permissions say.
+
 ## Importing the old database (MySQL dump)
 
 ```

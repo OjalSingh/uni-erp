@@ -2,7 +2,7 @@ const express = require("express");
 const Invoice = require("../models/Invoice");
 const { Item } = require("../models/Inventory");
 const Center = require("../models/Center");
-const { requireAuth, requireRole } = require("../middleware/auth");
+const { requireAuth, requirePermission } = require("../middleware/auth");
 const { guarded, nextNumber } = require("../lib/util");
 const { totalsByItem } = require("./stock");
 
@@ -13,13 +13,13 @@ const round2 = (n) => Math.round(n * 100) / 100;
 // Centers only ever see their own invoices
 const scope = (req) => (req.user.role === "center" ? { center: req.user.center } : {});
 
-router.get("/", async (req, res) => {
+router.get("/", requirePermission("invoices:view"), async (req, res) => {
   const rows = await Invoice.find(scope(req)).sort({ invoiceNo: -1 }).populate("center", "code name email mobile");
   res.json(rows);
 });
 
 // Per-center totals for the Report button
-router.get("/report", requireRole("admin"), async (_req, res) => {
+router.get("/report", requirePermission("invoices:manage"), async (_req, res) => {
   const rows = await Invoice.find().populate("center", "code name");
   const byCenter = new Map();
   for (const inv of rows) {
@@ -34,13 +34,13 @@ router.get("/report", requireRole("admin"), async (_req, res) => {
   res.json([...byCenter.values()].sort((a, b) => b.outstanding - a.outstanding));
 });
 
-router.get("/:id", async (req, res) => {
+router.get("/:id", requirePermission("invoices:view"), async (req, res) => {
   const inv = await Invoice.findOne({ _id: req.params.id, ...scope(req) }).populate("center", "code name address email mobile").populate("lines.item", "code name");
   return inv ? res.json(inv) : res.status(404).json({ message: "Invoice not found" });
 });
 
 // Totals are always computed here; whatever the browser sends for totals is ignored
-router.post("/", requireRole("admin"), (req, res) => {
+router.post("/", requirePermission("invoices:manage"), (req, res) => {
   const { center, lines = [], gstPercent = 0, discount = 0 } = req.body || {};
   return guarded(res, async () => {
     if (!(await Center.exists({ _id: center, status: "Active" }))) return res.status(400).json({ message: "Choose an active center" });
@@ -87,7 +87,7 @@ router.post("/", requireRole("admin"), (req, res) => {
   }, "Another invoice was created at the same time. Please save again.");
 });
 
-router.post("/:id/payments", requireRole("admin"), (req, res) =>
+router.post("/:id/payments", requirePermission("invoices:manage"), (req, res) =>
   guarded(res, async () => {
     const inv = await Invoice.findById(req.params.id);
     if (!inv) return res.status(404).json({ message: "Invoice not found" });
@@ -101,7 +101,7 @@ router.post("/:id/payments", requireRole("admin"), (req, res) =>
 );
 
 // An invoice with payments recorded cannot be deleted; deleting one without payments returns its stock automatically
-router.delete("/:id", requireRole("admin"), async (req, res) => {
+router.delete("/:id", requirePermission("invoices:manage"), async (req, res) => {
   const inv = await Invoice.findById(req.params.id);
   if (!inv) return res.status(404).json({ message: "Invoice not found" });
   if (inv.payments.length) return res.status(409).json({ message: "Payments have been recorded against this invoice, so it cannot be deleted" });

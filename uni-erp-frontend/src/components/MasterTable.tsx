@@ -3,7 +3,7 @@ import type { FormEvent, ReactNode } from 'react'
 import { api } from '../api.ts'
 import { errMsg } from '../format.ts'
 
-export interface Opt { value: string; label: string }
+export interface Opt { value: string; label: string; group?: string }
 export type Values = Record<string, string | boolean | string[]>
 export interface Field {
   key: string
@@ -112,19 +112,27 @@ export default function MasterTable<T extends { _id: string; system?: boolean }>
             )
           })}
         </div>
-        {fields.filter((f) => f.type === 'multi').map((f) => (
-          <fieldset key={f.key} className="checks">
-            <legend>{f.label}</legend>
-            {optsFor(f).map((o) => {
-              const list = form[f.key] as string[]
-              return (
-                <label key={o.value}>
-                  <input type="checkbox" checked={list.includes(o.value)} onChange={(e) => set(f.key, e.target.checked ? [...list, o.value] : list.filter((x) => x !== o.value))} /> {o.label}
-                </label>
-              )
-            })}
-          </fieldset>
-        ))}
+        {fields.filter((f) => f.type === 'multi').map((f) => {
+          const list = form[f.key] as string[]
+          const opts = optsFor(f)
+          const groups = [...new Set(opts.map((o) => o.group ?? ''))]
+          const toggle = (value: string, on: boolean) => set(f.key, on ? [...list, value] : list.filter((x) => x !== value))
+          return (
+            <fieldset key={f.key} className="checks">
+              <legend>{f.label}</legend>
+              {groups.map((g) => (
+                <div key={g} className="check-group">
+                  {g && <strong>{g}</strong>}
+                  {opts.filter((o) => (o.group ?? '') === g).map((o) => (
+                    <label key={o.value}>
+                      <input type="checkbox" checked={list.includes(o.value)} onChange={(e) => toggle(o.value, e.target.checked)} /> {o.label}
+                    </label>
+                  ))}
+                </div>
+              ))}
+            </fieldset>
+          )
+        })}
         {error && <p className="err pad" role="alert">{error}</p>}
         <div className="actions" style={{ marginTop: 8 }}>
           <button className="btn-save" type="submit">{editId ? `Save ${noun}` : `Add ${noun}`}</button>{' '}

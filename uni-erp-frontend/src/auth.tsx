@@ -6,14 +6,16 @@ export interface User {
   _id: string
   username: string
   name: string
-  role: 'admin' | 'center'
+  role: 'admin' | 'center' // 'admin' sees every center, 'center' only its own
   center?: string
+  permissions: string[]
 }
 
 interface AuthState {
   user: User | null
   loading: boolean
   login: (username: string, password: string) => Promise<void>
+  can: (...permissions: string[]) => boolean // true if the user holds at least one
   logout: () => void
 }
 
@@ -43,7 +45,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null)
   }
 
-  return <AuthContext.Provider value={{ user, loading, login, logout }}>{children}</AuthContext.Provider>
+  const can = (...permissions: string[]) => Boolean(user) && permissions.some((p) => user!.permissions?.includes(p))
+
+  return <AuthContext.Provider value={{ user, loading, login, logout, can }}>{children}</AuthContext.Provider>
 }
 
 export function useAuth() {

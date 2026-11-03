@@ -1,12 +1,12 @@
 const express = require("express");
 const Mark = require("../models/Mark");
 const ResultPublish = require("../models/ResultPublish");
-const { requireAuth, requireRole } = require("../middleware/auth");
+const { requireAuth, requirePermission } = require("../middleware/auth");
 const { escapeRegex } = require("../lib/util");
 const Student = require("../models/Student");
 
 const router = express.Router();
-router.use(requireAuth, requireRole("admin"));
+router.use(requireAuth, requirePermission("certificates:print"));
 
 // Only schedules whose results have been published can have certificates printed
 router.get("/schedules", async (_req, res) => {

@@ -3,7 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 const multer = require("multer");
-const { requireAuth } = require("../middleware/auth");
+const { requireAuth, requirePermission } = require("../middleware/auth");
 
 const UPLOAD_DIR = path.join(__dirname, "..", "..", "uploads");
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
@@ -22,7 +22,7 @@ const upload = multer({
 
 const router = express.Router();
 
-router.post("/photo", requireAuth, (req, res) => {
+router.post("/photo", requireAuth, requirePermission("students:create", "students:edit"), (req, res) => {
   upload.single("photo")(req, res, (err) => {
     if (err) {
       const msg = err.code === "LIMIT_FILE_SIZE" ? "Photo must be 500 KB or smaller" : "Upload failed";

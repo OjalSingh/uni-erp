@@ -23,8 +23,8 @@ interface ReportRow {
 }
 
 export default function Books() {
-  const { user } = useAuth()
-  const isAdmin = user?.role === 'admin'
+  const { can } = useAuth()
+  const isAdmin = can('invoices:manage')
   const [rows, setRows] = useState<InvoiceRow[]>([])
   const [report, setReport] = useState<ReportRow[] | null>(null)
   const [error, setError] = useState('')

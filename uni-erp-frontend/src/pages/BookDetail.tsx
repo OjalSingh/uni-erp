@@ -28,8 +28,8 @@ const MODES = ['Cash', 'Cheque', 'Bank transfer', 'UPI', 'Other']
 export default function BookDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { user } = useAuth()
-  const isAdmin = user?.role === 'admin'
+  const { can } = useAuth()
+  const isAdmin = can('invoices:manage')
   const [inv, setInv] = useState<Invoice | null>(null)
   const [pay, setPay] = useState({ amount: '', mode: 'Cash', paidAt: toInputDate(new Date().toISOString()), reference: '' })
   const [error, setError] = useState('')

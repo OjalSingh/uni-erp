@@ -3,22 +3,24 @@ const { State, City, FinancialYear, Menu, SubMenu, Role } = require("../models/C
 const Student = require("../models/Student");
 const Center = require("../models/Center");
 const User = require("../models/User");
-const { requireAuth, requireRole } = require("../middleware/auth");
+const { requireAuth, requirePermission, clearRoleCache } = require("../middleware/auth");
 const { guarded } = require("../lib/util");
-const { SCREENS, CENTER_MENUS, ALL_MENUS, PROTECTED_MENUS, PROTECTED_SUBMENUS } = require("../lib/screens");
+const { SCREENS, ALL_MENUS, PROTECTED_MENUS, PROTECTED_SUBMENUS } = require("../lib/screens");
+const { PERMISSIONS, forScope, MENU_PERMISSION, effectivePermissions, SCOPE_OF } = require("../lib/permissions");
 
 const router = express.Router();
 router.use(requireAuth);
-const admin = requireRole("admin");
+const admin = requirePermission("settings:manage");
+const adminOrUsers = requirePermission("settings:manage", "employees:manage"); // the user screen needs the role list too
 
 const pick = (body, fields) => Object.fromEntries(fields.filter((f) => body?.[f] !== undefined).map((f) => [f, body[f]]));
 
 // Small CRUD factory: GET list, POST create, PUT update, DELETE (blocked for system rows and rows in use)
-function crud(path, Model, { fields, createOnly = [], filters = [], populate, sort = { createdAt: 1 }, readAll = false, inUse, before, after, label, filterFor }) {
-  router.get(`/${path}`, ...(readAll ? [] : [admin]), async (req, res) => {
+function crud(path, Model, { fields, createOnly = [], filters = [], populate, sort = { createdAt: 1 }, readAll = false, inUse, before, after, label, filterFor, readGuard, onChange }) {
+  router.get(`/${path}`, ...(readAll ? [] : [readGuard || admin]), async (req, res) => {
     const filter = filterFor ? await filterFor(req) : {};
     for (const f of filters) if (req.query[f]) filter[f] = req.query[f];
-    if (readAll && req.user.role !== "admin" && Model.schema.path("active")) filter.active = true; // non-admins only see active rows
+    if (readAll && !req.perms.has("settings:manage") && Model.schema.path("active")) filter.active = true; // non-admins only see active rows
     let q = Model.find(filter).sort(sort);
     if (populate) q = q.populate(populate);
     res.json(await q);
@@ -27,9 +29,10 @@ function crud(path, Model, { fields, createOnly = [], filters = [], populate, so
   router.post(`/${path}`, admin, (req, res) =>
     guarded(res, async () => {
       const data = pick(req.body, [...fields, ...createOnly]);
-      if (before) { const err = await before(data, null); if (err) return res.status(400).json({ message: err }); }
+      if (before) { const err = await before(data, null, req); if (err) return res.status(400).json({ message: err }); }
       const doc = await Model.create(data);
       if (after) await after(doc);
+      if (onChange) onChange();
       res.status(201).json(doc);
     }, `That ${label} already exists`)
   );
@@ -39,10 +42,11 @@ function crud(path, Model, { fields, createOnly = [], filters = [], populate, so
       const doc = await Model.findById(req.params.id);
       if (!doc) return res.status(404).json({ message: `${label} not found` });
       const data = pick(req.body, fields); // createOnly fields never change after creation
-      if (before) { const err = await before(data, doc); if (err) return res.status(400).json({ message: err }); }
+      if (before) { const err = await before(data, doc, req); if (err) return res.status(400).json({ message: err }); }
       doc.set(data);
       await doc.save();
       if (after) await after(doc);
+      if (onChange) onChange();
       res.json(doc);
     }, `That ${label} already exists`)
   );
@@ -53,6 +57,7 @@ function crud(path, Model, { fields, createOnly = [], filters = [], populate, so
     if (doc.system) return res.status(409).json({ message: `This ${label} is built in and cannot be deleted. You can switch it off instead.` });
     if (inUse) { const msg = await inUse(doc); if (msg) return res.status(409).json({ message: msg }); }
     await doc.deleteOne();
+    if (onChange) onChange();
     res.json({ message: `${label} deleted` });
   });
 }
@@ -112,32 +117,34 @@ crud("sub-menus", SubMenu, {
 
 // ----- Roles -----
 crud("roles", Role, {
-  label: "role", fields: ["name", "menus", "active"], createOnly: ["key", "baseRole"], sort: { createdAt: 1 },
-  before: async (data, doc) => {
+  label: "role", fields: ["name", "permissions", "active"], createOnly: ["key", "baseRole"], sort: { createdAt: 1 },
+  readGuard: adminOrUsers, onChange: clearRoleCache,
+  before: async (data, doc, req) => {
     const baseRole = doc ? doc.baseRole : data.baseRole;
-    if (doc?.key === "admin") { delete data.menus; if (data.active === false) return "The head office role cannot be switched off."; }
-    if (data.menus && !Array.isArray(data.menus)) return "Menus must be a list.";
-    if (data.menus) {
-      const allowed = baseRole === "admin" ? ALL_MENUS : CENTER_MENUS;
-      const bad = data.menus.filter((m) => !allowed.includes(m));
-      if (bad.length) return baseRole === "center" ? "Center roles can only use Student Registration, Center Details, Fill Exam Form, Admit Card, ID Card, Book Allocated and Change Password." : "Unknown menu selected.";
-      if (!data.menus.includes("change-password")) data.menus.push("change-password"); // everyone can change their own password
+    if (!doc && !["admin", "center"].includes(baseRole)) return "Choose which records the role covers: all centers or its own center only.";
+    if (doc?.key === "admin") { delete data.permissions; if (data.active === false) return "The Super Admin role cannot be switched off."; }
+    if (doc?.key === "center" && data.active === false) return "The default Center Admin role cannot be switched off.";
+    // Nobody can edit a role that has more access than they have
+    if (doc && !effectivePermissions(doc).every((p) => req.perms.has(p))) return "You cannot change a role that has more access than you.";
+    if (data.permissions !== undefined) {
+      if (!Array.isArray(data.permissions)) return "Permissions must be a list.";
+      const known = new Set(forScope(SCOPE_OF(baseRole)));
+      const unknown = data.permissions.filter((p) => !known.has(p));
+      if (unknown.length) return baseRole === "center" ? `A center role cannot be given head-office permissions (${unknown.join(", ")}).` : `Unknown permission: ${unknown.join(", ")}.`;
+      if (data.permissions.some((p) => !req.perms.has(p))) return "You cannot give a role permissions that you do not have yourself.";
+      data.permissions = [...new Set(data.permissions)];
     }
-    if (doc?.key === "center" && data.active === false) return "The default center role cannot be switched off.";
     return null;
   },
   inUse: async (r) => ((await User.exists({ roleRef: r._id })) ? "Users have this role. Move them to another role first." : null),
 });
 
+router.get("/permissions", adminOrUsers, (_req, res) => res.json(PERMISSIONS));
+
 // ----- Navigation for the signed-in user -----
 router.get("/navigation", async (req, res) => {
-  const role = req.user.roleRef ? await Role.findById(req.user.roleRef) : await Role.findOne({ key: req.user.role });
-  const fallback = req.user.role === "admin" ? ALL_MENUS : CENTER_MENUS;
-  const allowed = role ? (role.active ? role.menus : ["change-password"]) : fallback;
-  // The API stays limited to the base role, whatever a role's menu list says
-  const ceiling = req.user.role === "admin" ? ALL_MENUS : CENTER_MENUS;
-  const keys = allowed.filter((k) => ceiling.includes(k));
-
+  // A menu shows when the user holds the permission that opens it
+  const keys = ALL_MENUS.filter((k) => MENU_PERMISSION[k] === null || (MENU_PERMISSION[k] && req.perms.has(MENU_PERMISSION[k])));
   const menus = await Menu.find({ active: true, key: { $in: keys } }).sort({ order: 1 });
   const subs = await SubMenu.find({ active: true, menu: { $in: menus.map((m) => m._id) } }).sort({ order: 1 });
   res.json(menus.map((m) => ({ key: m.key, label: m.label, group: m.group, order: m.order, submenus: subs.filter((s) => String(s.menu) === String(m._id)).map((s) => ({ label: s.label })) })));

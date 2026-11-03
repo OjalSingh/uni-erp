@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api.ts'
+import { useAuth } from '../auth.tsx'
 import { useSessions } from '../lookups.ts'
 
 interface Student {
@@ -23,6 +24,7 @@ interface Page {
 }
 
 export default function Students() {
+  const { can } = useAuth()
   const { sessions, current, loaded } = useSessions()
   const [session, setSession] = useState('')
   useEffect(() => { if (loaded && !session) setSession(current) }, [loaded, current, session])
@@ -53,9 +55,11 @@ export default function Students() {
     <>
       <div className="page-head">
         <h1 className="page-title">Student Registration</h1>
-        <Link to="/students/new" className="btn-create">
-          New registration
-        </Link>
+        {can('students:create') && (
+          <Link to="/students/new" className="btn-create">
+            New registration
+          </Link>
+        )}
       </div>
       <section className="panel">
       <div className="toolbar">
@@ -109,12 +113,16 @@ export default function Students() {
               <td>{s.course?.name}</td>
               <td><span className={`status ${s.status === 'Active' ? 'on' : 'off'}`}>{s.status}</span></td>
               <td>
-                <Link to={`/students/${s._id}/edit`} className="btn-mod">
-                  Modify
-                </Link>{' '}
-                <button className="btn-del" onClick={() => deactivate(s)}>
-                  Deactivate
-                </button>
+                {can('students:edit') && (
+                  <Link to={`/students/${s._id}/edit`} className="btn-mod">
+                    Modify
+                  </Link>
+                )}{' '}
+                {can('students:deactivate') && (
+                  <button className="btn-del" onClick={() => deactivate(s)}>
+                    Deactivate
+                  </button>
+                )}
               </td>
             </tr>
           ))}

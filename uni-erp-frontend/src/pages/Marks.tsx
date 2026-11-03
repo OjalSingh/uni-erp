@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { api } from '../api.ts'
+import { useAuth } from '../auth.tsx'
 import Pager from '../components/Pager.tsx'
 import ScheduleSelect from '../components/ScheduleSelect.tsx'
 import { errMsg } from '../format.ts'
@@ -18,6 +19,8 @@ interface Mark {
 }
 
 export default function Marks() {
+  const { can } = useAuth()
+  const canEdit = can('marks:edit')
   const [schedules, setSchedules] = useState<Schedule[]>([])
   const [schedule, setSchedule] = useState('')
   const [data, setData] = useState<Paged<Mark> | null>(null)
@@ -80,6 +83,7 @@ export default function Marks() {
           <ScheduleSelect schedules={schedules} value={schedule} onChange={(id) => { setSchedule(id); setPage(1) }} />
           <input placeholder="Search by name, enrollment or roll no." aria-label="Search marks" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1) }} />
         </div>
+        {canEdit && (
         <form className="toolbar" onSubmit={addMarks}>
           <input required placeholder="Student enrollment no." aria-label="Enrollment number" value={add.enrollNo} onChange={(e) => setAdd((a) => ({ ...a, enrollNo: e.target.value }))} />
           <label>
@@ -91,6 +95,7 @@ export default function Marks() {
             Add marks
           </button>
         </form>
+        )}
         {error && <p className="err pad">{error}</p>}
         <table className="grid">
           <thead>
@@ -136,12 +141,12 @@ export default function Marks() {
                     <td>{m.practicalMarks}</td>
                     <td>{m.totalMarks}</td>
                     <td>
-                      <button className="btn-mod" onClick={() => { setEditId(m._id); setEdit({ theoryMarks: String(m.theoryMarks), practicalMarks: String(m.practicalMarks) }) }}>
+                      {canEdit && (<><button className="btn-mod" onClick={() => { setEditId(m._id); setEdit({ theoryMarks: String(m.theoryMarks), practicalMarks: String(m.practicalMarks) }) }}>
                         Modify
                       </button>{' '}
                       <button className="btn-del" onClick={() => remove(m)}>
                         Delete
-                      </button>
+                      </button></>)}
                     </td>
                   </>
                 )}

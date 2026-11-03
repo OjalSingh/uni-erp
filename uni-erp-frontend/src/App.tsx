@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import { useAuth } from './auth.tsx'
 import Layout from './components/Layout.tsx'
+import Can from './components/Can.tsx'
 import Login from './pages/Login.tsx'
 import Dashboard from './pages/Dashboard.tsx'
 import Students from './pages/Students.tsx'
@@ -22,11 +23,6 @@ import IdCards from './pages/IdCards.tsx'
 import Certificates from './pages/Certificates.tsx'
 import ChangePassword from './pages/ChangePassword.tsx'
 import { MODULES } from './modules.ts'
-
-function AdminOnly({ children }: { children: ReactNode }) {
-  const { user } = useAuth()
-  return user?.role === 'admin' ? <>{children}</> : <Navigate to="/" replace />
-}
 
 function Protected({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth()
@@ -64,14 +60,14 @@ export default function App() {
         <Route index element={<Dashboard />} />
         {MODULES.map((m) => {
           const page = built[m.path] ?? <Placeholder title={m.label} />
-          return <Route key={m.path} path={m.path} element={m.adminOnly ? <AdminOnly>{page}</AdminOnly> : page} />
+          return <Route key={m.path} path={m.path} element={m.perm ? <Can perm={m.perm}>{page}</Can> : page} />
         })}
-        <Route path="books/new" element={<AdminOnly><BookNew /></AdminOnly>} />
-        <Route path="books/:id" element={<BookDetail />} />
-        <Route path="stock/:view" element={<AdminOnly><Stock /></AdminOnly>} />
-        <Route path="students/new" element={<StudentForm />} />
-        <Route path="students/:id/edit" element={<StudentForm />} />
-        <Route path="misc/:name" element={<Misc />} />
+        <Route path="books/new" element={<Can perm="invoices:manage"><BookNew /></Can>} />
+        <Route path="books/:id" element={<Can perm="invoices:view"><BookDetail /></Can>} />
+        <Route path="stock/:view" element={<Can perm="stock:view"><Stock /></Can>} />
+        <Route path="students/new" element={<Can perm="students:create"><StudentForm /></Can>} />
+        <Route path="students/:id/edit" element={<Can perm="students:edit"><StudentForm /></Can>} />
+        <Route path="misc/:name" element={<Can perm="settings:manage"><Misc /></Can>} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { api } from '../api.ts'
+import { useAuth } from '../auth.tsx'
 import { errMsg, fmtDate, scheduleLabel } from '../format.ts'
 import type { Schedule } from '../format.ts'
 
@@ -21,6 +22,8 @@ interface ResultRow {
 const blank = { schedule: '', comments: '', publishDate: '', endDate: '' }
 
 export default function Results() {
+  const { can } = useAuth()
+  const canManage = can('results:manage')
   const [rows, setRows] = useState<ResultRow[]>([])
   const [schedules, setSchedules] = useState<Schedule[]>([])
   const [form, setForm] = useState(blank)
@@ -60,6 +63,7 @@ export default function Results() {
     <>
       <h1 className="page-title">Publish Result</h1>
       <section className="panel">
+        {canManage && (
         <form className="toolbar" onSubmit={submit}>
           <select required value={form.schedule} onChange={(e) => setForm((f) => ({ ...f, schedule: e.target.value }))} aria-label="Exam schedule">
             <option value="">Select exam schedule</option>
@@ -80,6 +84,7 @@ export default function Results() {
             Save
           </button>
         </form>
+        )}
         {error && <p className="err pad">{error}</p>}
         <table className="grid">
           <thead>
@@ -113,9 +118,9 @@ export default function Results() {
                   <span className={`status ${r.published ? 'on' : 'off'}`}>{r.published ? 'Published' : 'Not published'}</span>
                 </td>
                 <td>
-                  <button className="btn-mod" onClick={() => toggle(r)}>
+                  {canManage && (<button className="btn-mod" onClick={() => toggle(r)}>
                     {r.published ? 'Unpublish' : 'Publish'}
-                  </button>
+                  </button>)}
                 </td>
               </tr>
             ))}

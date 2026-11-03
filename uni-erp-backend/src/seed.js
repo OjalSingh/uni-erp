@@ -5,7 +5,9 @@ const User = require("./models/User");
 const Center = require("./models/Center");
 const { CourseType, Course } = require("./models/Course");
 const { State, FinancialYear, Menu, SubMenu, Role } = require("./models/Config");
-const { SCREENS, MISC_SCREENS, CENTER_MENUS, ALL_MENUS } = require("./lib/screens");
+const { SCREENS, MISC_SCREENS } = require("./lib/screens");
+const { ROLE_DEFAULTS } = require("./lib/permissions");
+const crypto = require("crypto");
 
 const STATES = [
   "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand",
@@ -36,8 +38,17 @@ async function seedConfig() {
     await SubMenu.updateOne({ menu: misc._id, label }, { $setOnInsert: { menu: misc._id, label, order, active: true, system: true } }, { upsert: true });
   }
 
-  await Role.updateOne({ key: "admin" }, { $setOnInsert: { key: "admin", name: "Super Admin", baseRole: "admin", menus: ALL_MENUS, active: true, system: true } }, { upsert: true });
-  await Role.updateOne({ key: "center" }, { $setOnInsert: { key: "center", name: "Center", baseRole: "center", menus: CENTER_MENUS, active: true, system: true } }, { upsert: true });
+  // The six user levels. A role you have already customised keeps its permissions; Super Admin always gets everything (including new features).
+  for (const def of ROLE_DEFAULTS) {
+    const existing = await Role.findOne({ key: def.key }).lean();
+    if (!existing) {
+      await Role.create({ key: def.key, name: def.name, baseRole: def.baseRole, permissions: def.permissions, active: true, system: Boolean(def.system) });
+    } else if (def.key === "admin") {
+      await Role.updateOne({ key: "admin" }, { $set: { permissions: def.permissions } });
+    } else if (!existing.permissions) {
+      await Role.updateOne({ key: def.key }, { $set: { permissions: def.permissions, name: def.name } }); // first migration from the old menu-only roles
+    }
+  }
 }
 
 // Local-development seed only. Never use these credentials anywhere real.
@@ -55,17 +66,37 @@ async function seedConfig() {
     { upsert: true }
   );
 
-  const adminRole = await Role.findOne({ key: "admin" });
-  const centerRole = await Role.findOne({ key: "center" });
-  const accounts = [
-    { username: "admin", name: "Head Office", role: "admin", roleRef: adminRole._id, center: head._id, password: "admin@12345" },
-    { username: "center1001", name: "Demo Center", role: "center", roleRef: centerRole._id, center: demo._id, password: "center@12345" },
+  const roleBy = Object.fromEntries((await Role.find().lean()).map((r) => [r.key, r]));
+  const fixed = [
+    { username: "admin", name: "Head Office", roleKey: "admin", center: head._id, password: "admin@12345" },
+    { username: "center1001", name: "Demo Center", roleKey: "center", center: demo._id, password: "center@12345" },
   ];
-  for (const a of accounts) {
+  for (const a of fixed) {
     await User.deleteOne({ username: a.username });
-    await User.create(a);
+    await User.create({ username: a.username, name: a.name, role: roleBy[a.roleKey].baseRole, roleRef: roleBy[a.roleKey]._id, center: a.center, password: a.password });
+  }
+
+  // One test login for every other level. Passwords are random, shown once here, and not stored anywhere else.
+  const levels = [
+    { username: "headadmin", name: "Test Admin", roleKey: "head-admin", center: head._id },
+    { username: "staff", name: "Test Normal User", roleKey: "staff", center: head._id },
+    { username: "guest", name: "Test Guest", roleKey: "guest", center: head._id },
+    { username: "centerstaff", name: "Test Center Staff", roleKey: "center-staff", center: demo._id },
+  ];
+  const ALPHABET = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789";
+  const created = [];
+  for (const l of levels) {
+    if (await User.exists({ username: l.username })) continue;
+    const password = Array.from({ length: 12 }, () => ALPHABET[crypto.randomInt(ALPHABET.length)]).join("");
+    await User.create({ username: l.username, name: l.name, role: roleBy[l.roleKey].baseRole, roleRef: roleBy[l.roleKey]._id, center: l.center, password });
+    created.push({ username: l.username, level: roleBy[l.roleKey].name, password });
   }
   console.log("Seeded dev accounts: admin / center1001 (see src/seed.js)");
+  if (created.length) {
+    console.log("\nNew test logins (shown once, so note them now):");
+    for (const c of created) console.log(`  ${c.username.padEnd(12)} ${c.level.padEnd(18)} ${c.password}`);
+    console.log("Center-level test logins belong to the demo center; point them at a real center in Employee Details to test with real data.");
+  }
   await mongoose.disconnect();
 })().catch((e) => {
   console.error(e);

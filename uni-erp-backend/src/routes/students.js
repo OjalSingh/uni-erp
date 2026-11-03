@@ -1,6 +1,6 @@
 const express = require("express");
 const Student = require("../models/Student");
-const { requireAuth, centerScope } = require("../middleware/auth");
+const { requireAuth, requirePermission, centerScope } = require("../middleware/auth");
 
 const router = express.Router();
 router.use(requireAuth);
@@ -17,14 +17,14 @@ async function nextEnrollNo(session) {
   return prefix + String(seq).padStart(5, "0");
 }
 
-router.get("/next-enroll-no", async (req, res) => {
+router.get("/next-enroll-no", requirePermission("students:create"), async (req, res) => {
   const { session } = req.query;
   if (!/^\d{4}-\d{2}$/.test(session || "")) return res.status(400).json({ message: "session must look like 2025-26" });
   res.json({ enrollNo: await nextEnrollNo(session) });
 });
 
 // Active students for ID card printing (max 200 per request)
-router.get("/id-cards", async (req, res) => {
+router.get("/id-cards", requirePermission("idcards:print"), async (req, res) => {
   const { session, center, search = "" } = req.query;
   if (!session) return res.status(400).json({ message: "Choose a session" });
   const filter = { session, status: "Active", ...centerScope(req) };
@@ -41,7 +41,7 @@ router.get("/id-cards", async (req, res) => {
 });
 
 // List by session with search + pagination (the DataTable on the original page)
-router.get("/", async (req, res) => {
+router.get("/", requirePermission("students:view"), async (req, res) => {
   const { session, search = "", page = 1, limit = 10 } = req.query;
   const filter = { ...centerScope(req) };
   if (session) filter.session = session;
@@ -64,7 +64,7 @@ router.get("/", async (req, res) => {
   res.json({ items, total, page: p, pages: Math.ceil(total / l) });
 });
 
-router.get("/:id", async (req, res) => {
+router.get("/:id", requirePermission("students:view", "students:edit"), async (req, res) => {
   const s = await Student.findOne({ _id: req.params.id, ...centerScope(req) })
     .populate("center", "code name")
     .populate("courseType", "name")
@@ -73,7 +73,7 @@ router.get("/:id", async (req, res) => {
   res.json(s);
 });
 
-router.post("/", async (req, res) => {
+router.post("/", requirePermission("students:create"), async (req, res) => {
   const body = { ...req.body };
   // Center logins can only register into their own center
   if (req.user.role === "center") body.center = req.user.center;
@@ -94,7 +94,7 @@ router.post("/", async (req, res) => {
   }
 });
 
-router.put("/:id", async (req, res) => {
+router.put("/:id", requirePermission("students:edit"), async (req, res) => {
   const body = { ...req.body };
   delete body.enrollNo; // never changes after registration
   delete body._id;
@@ -111,7 +111,7 @@ router.put("/:id", async (req, res) => {
 });
 
 // Soft delete so marks/certificates tied to the student are never orphaned
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", requirePermission("students:deactivate"), async (req, res) => {
   const s = await Student.findOneAndUpdate({ _id: req.params.id, ...centerScope(req) }, { status: "Inactive" }, { new: true });
   if (!s) return res.status(404).json({ message: "Student not found" });
   res.json({ message: "Student deactivated" });

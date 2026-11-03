@@ -58,14 +58,14 @@ const subMenuSchema = new mongoose.Schema(
 );
 subMenuSchema.index({ menu: 1, label: 1 }, { unique: true });
 
-// baseRole decides what the API allows (admin = everything, center = own center only).
-// menus decides what shows up in the sidebar and dashboard.
+// baseRole is the data scope: "admin" = records of every center, "center" = own center only.
+// permissions are what the role may do; the server checks them on every request, and the sidebar mirrors them.
 const roleSchema = new mongoose.Schema(
   {
     key: { type: String, required: [true, "Role key is required"], unique: true, trim: true, lowercase: true, match: [/^[a-z][a-z0-9-]{1,30}$/, "Key must be lowercase letters, digits or hyphens"] },
     name: { type: String, required: [true, "Role name is required"], trim: true },
     baseRole: { type: String, enum: ["admin", "center"], required: true },
-    menus: { type: [String], default: [] },
+    permissions: { type: [String], default: undefined },
     active: { type: Boolean, default: true },
     system: { type: Boolean, default: false },
   },

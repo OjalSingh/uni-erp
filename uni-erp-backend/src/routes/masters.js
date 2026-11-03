@@ -1,6 +1,6 @@
 const express = require("express");
 const { CourseType, Course, Subject } = require("../models/Course");
-const { requireAuth, requireRole } = require("../middleware/auth");
+const { requireAuth, requirePermission } = require("../middleware/auth");
 const { guarded } = require("../lib/util");
 
 const router = express.Router();
@@ -9,7 +9,7 @@ router.use(requireAuth);
 // ----- Course types -----
 router.get("/course-types", async (_req, res) => res.json(await CourseType.find().sort({ name: 1 })));
 
-router.post("/course-types", requireRole("admin"), (req, res) =>
+router.post("/course-types", requirePermission("settings:manage"), (req, res) =>
   guarded(
     res,
     async () => res.status(201).json(await CourseType.create({ name: req.body?.name })),
@@ -17,7 +17,7 @@ router.post("/course-types", requireRole("admin"), (req, res) =>
   )
 );
 
-router.put("/course-types/:id", requireRole("admin"), (req, res) =>
+router.put("/course-types/:id", requirePermission("settings:manage"), (req, res) =>
   guarded(
     res,
     async () => {
@@ -34,12 +34,12 @@ router.get("/courses", async (req, res) => {
   res.json(await Course.find(filter).populate("courseType", "name").sort({ name: 1 }));
 });
 
-router.post("/courses", requireRole("admin"), (req, res) => {
+router.post("/courses", requirePermission("settings:manage"), (req, res) => {
   const { courseType, name, code, parts, durationYears } = req.body || {};
   return guarded(res, async () => res.status(201).json(await Course.create({ courseType, name, code, parts, durationYears })));
 });
 
-router.put("/courses/:id", requireRole("admin"), (req, res) => {
+router.put("/courses/:id", requirePermission("settings:manage"), (req, res) => {
   const { courseType, name, code, parts, durationYears } = req.body || {};
   return guarded(res, async () => {
     const c = await Course.findByIdAndUpdate(req.params.id, { courseType, name, code, parts, durationYears }, { new: true, runValidators: true });
@@ -55,12 +55,12 @@ router.get("/subjects", async (req, res) => {
   res.json(await Subject.find(filter).populate("course", "name").sort({ part: 1, name: 1 }));
 });
 
-router.post("/subjects", requireRole("admin"), (req, res) => {
+router.post("/subjects", requirePermission("settings:manage"), (req, res) => {
   const { course, part, name, code, type, maxMarks } = req.body || {};
   return guarded(res, async () => res.status(201).json(await Subject.create({ course, part, name, code, type, maxMarks })), "That subject already exists for this course and part");
 });
 
-router.put("/subjects/:id", requireRole("admin"), (req, res) => {
+router.put("/subjects/:id", requirePermission("settings:manage"), (req, res) => {
   const { part, name, code, type, maxMarks } = req.body || {};
   return guarded(res, async () => {
     const s = await Subject.findByIdAndUpdate(req.params.id, { part, name, code, type, maxMarks }, { new: true, runValidators: true });

@@ -32,8 +32,8 @@ const blank = {
 type Form = typeof blank
 
 export default function Centers() {
-  const { user } = useAuth()
-  const isAdmin = user?.role === 'admin'
+  const { can } = useAuth()
+  const isAdmin = can('centers:manage')
   const [rows, setRows] = useState<Center[]>([])
   const [form, setForm] = useState<Form>(blank)
   const [editId, setEditId] = useState<string | null>(null)

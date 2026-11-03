@@ -3,16 +3,16 @@ const ExamSchedule = require("../models/ExamSchedule");
 const ExamForm = require("../models/ExamForm");
 const Mark = require("../models/Mark");
 const Student = require("../models/Student");
-const { requireAuth, requireRole, centerScope } = require("../middleware/auth");
+const { requireAuth, requirePermission, centerScope } = require("../middleware/auth");
 const { guarded, paging, escapeRegex, nextNumber } = require("../lib/util");
 
 const router = express.Router();
 router.use(requireAuth);
 
 // ----- Schedules -----
-router.get("/schedules", async (_req, res) => res.json(await ExamSchedule.find().sort({ examId: -1 })));
+router.get("/schedules", requirePermission("exams:view", "marks:view", "results:view", "admitcards:print"), async (_req, res) => res.json(await ExamSchedule.find().sort({ examId: -1 })));
 
-router.post("/schedules", requireRole("admin"), (req, res) => {
+router.post("/schedules", requirePermission("exams:schedule"), (req, res) => {
   const { examTerm, year, formStart, formEnd } = req.body || {};
   return guarded(res, async () => {
     const examId = await nextNumber(ExamSchedule, "examId");
@@ -20,7 +20,7 @@ router.post("/schedules", requireRole("admin"), (req, res) => {
   });
 });
 
-router.put("/schedules/:id", requireRole("admin"), (req, res) => {
+router.put("/schedules/:id", requirePermission("exams:schedule"), (req, res) => {
   const { examTerm, year, formStart, formEnd } = req.body || {};
   return guarded(res, async () => {
     const s = await ExamSchedule.findById(req.params.id);
@@ -32,7 +32,7 @@ router.put("/schedules/:id", requireRole("admin"), (req, res) => {
 });
 
 // ----- Admit cards: accepted forms with everything needed to print -----
-router.get("/admit-cards", async (req, res) => {
+router.get("/admit-cards", requirePermission("admitcards:print"), async (req, res) => {
   const { schedule, search = "" } = req.query;
   if (!schedule) return res.status(400).json({ message: "Choose an exam schedule" });
   const filter = { schedule, status: "Accepted", ...centerScope(req) };
@@ -60,7 +60,7 @@ async function nextRollNo(course, schedule) {
   return prefix + String(seq).padStart(4, "0");
 }
 
-router.get("/forms", async (req, res) => {
+router.get("/forms", requirePermission("exams:view"), async (req, res) => {
   const { schedule, search = "" } = req.query;
   if (!schedule) return res.status(400).json({ message: "Choose an exam schedule" });
   const filter = { schedule, ...centerScope(req) };
@@ -78,7 +78,7 @@ router.get("/forms", async (req, res) => {
   res.json({ items, total, page, pages: Math.ceil(total / limit) });
 });
 
-router.post("/forms", (req, res) => {
+router.post("/forms", requirePermission("exams:create"), (req, res) => {
   const { schedule: scheduleId, enrollNo, part = 1, medium = "Hindi" } = req.body || {};
   return guarded(res, async () => {
     const schedule = await ExamSchedule.findById(scheduleId);
@@ -112,7 +112,7 @@ router.post("/forms", (req, res) => {
   }, "This student already has an exam form for that part in this schedule");
 });
 
-router.put("/forms/:id", (req, res) =>
+router.put("/forms/:id", requirePermission("exams:create"), (req, res) =>
   guarded(res, async () => {
     const form = await ExamForm.findOne({ _id: req.params.id, ...centerScope(req) });
     if (!form) return res.status(404).json({ message: "Exam form not found" });
@@ -124,7 +124,7 @@ router.put("/forms/:id", (req, res) =>
 );
 
 // Head office accepts or denies forms, singly or in bulk
-router.post("/forms/status", requireRole("admin"), async (req, res) => {
+router.post("/forms/status", requirePermission("exams:review"), async (req, res) => {
   const { ids, status } = req.body || {};
   if (!["Accepted", "Denied", "Pending"].includes(status)) return res.status(400).json({ message: "Invalid status" });
   if (!Array.isArray(ids) || ids.length === 0) return res.status(400).json({ message: "Select at least one form" });
@@ -132,7 +132,7 @@ router.post("/forms/status", requireRole("admin"), async (req, res) => {
   res.json({ updated: r.modifiedCount });
 });
 
-router.delete("/forms/:id", async (req, res) => {
+router.delete("/forms/:id", requirePermission("exams:create"), async (req, res) => {
   const form = await ExamForm.findOne({ _id: req.params.id, ...centerScope(req) });
   if (!form) return res.status(404).json({ message: "Exam form not found" });
   if (req.user.role === "center" && form.status !== "Pending") return res.status(400).json({ message: "Only pending forms can be removed" });
