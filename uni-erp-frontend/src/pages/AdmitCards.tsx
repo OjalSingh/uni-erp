@@ -26,7 +26,8 @@ const H = 1115
 const box = (x0: number, y0: number, x1: number, y1: number): CSSProperties => ({
   left: `${(x0 / W) * 100}%`, top: `${(y0 / H) * 100}%`, width: `${((x1 - x0) / W) * 100}%`, height: `${((y1 - y0) / H) * 100}%`,
 })
-const FIELDS = [
+type Box = [number, number, number, number]
+const FIELDS: { label: string; fs: number; lab: Box; val: Box }[] = [
   { label: 'Roll No.', fs: 5.2, lab: [14, 415, 193, 485], val: [193, 415, 455, 485] },
   { label: 'Enrollment No.', fs: 4.4, lab: [745, 412, 1046, 482], val: [1046, 412, 1325, 482] },
   { label: 'Centre Code', fs: 3.7, lab: [14, 508, 193, 577], val: [193, 508, 358, 577] },

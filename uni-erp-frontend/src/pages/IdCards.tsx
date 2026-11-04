@@ -7,7 +7,7 @@ import { api } from '../api.ts'
 import { useAuth } from '../auth.tsx'
 import PrintPage, { Selectable } from '../components/PrintPage.tsx'
 import { useSessions } from '../lookups.ts'
-import { errMsg, fmtDate } from '../format.ts'
+import { errMsg } from '../format.ts'
 
 interface Card {
   _id: string
