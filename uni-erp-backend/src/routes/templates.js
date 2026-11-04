@@ -56,6 +56,7 @@ const fields = (b) => ({
   ...(b.name !== undefined && { name: b.name }),
   ...(b.session !== undefined && { session: b.session }),
   ...(b.course !== undefined && { course: b.course || null }),
+  ...(b.duration !== undefined && { duration: b.duration === "" || b.duration === null ? null : Number(b.duration) }),
   ...(b.dx !== undefined && { dx: Number(b.dx) || 0 }),
   ...(b.dy !== undefined && { dy: Number(b.dy) || 0 }),
   ...(b.active !== undefined && { active: b.active === true || b.active === "true" }),

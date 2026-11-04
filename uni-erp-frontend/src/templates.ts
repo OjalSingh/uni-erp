@@ -15,6 +15,7 @@ export interface PrintTemplate {
   name: string
   session: string
   course: { _id: string; name: string } | null
+  duration: number | null
   image: string
   dx: number
   dy: number
@@ -29,15 +30,16 @@ export function useTemplates(): PrintTemplate[] {
   return list
 }
 
-// Most specific template wins: session + course, then course, then session, then one for everything.
-export function pickTemplate(list: PrintTemplate[], kind: TemplateKind, session?: string, courseId?: string): PrintTemplate | undefined {
+// Most specific template wins: a named course, then a course length (1 or 2 years), then the session, then one for everything.
+export function pickTemplate(list: PrintTemplate[], kind: TemplateKind, session?: string, courseId?: string, duration?: number): PrintTemplate | undefined {
   let best: PrintTemplate | undefined
   let bestScore = -1
   for (const t of list) {
     if (t.kind !== kind) continue
     if (t.session && t.session !== session) continue
     if (t.course && t.course._id !== courseId) continue
-    const score = (t.course ? 2 : 0) + (t.session ? 1 : 0)
+    if (t.duration && t.duration !== duration) continue
+    const score = (t.course ? 4 : 0) + (t.duration ? 2 : 0) + (t.session ? 1 : 0)
     if (score > bestScore) { best = t; bestScore = score }
   }
   return best

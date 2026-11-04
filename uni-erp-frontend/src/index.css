@@ -232,7 +232,7 @@ a { color: var(--accent); }
 .print-mode label { font-size: 14px; display: inline-flex; align-items: center; gap: 6px; }
 .cert-notice { background: #fff6e5; border: 1px solid #f0d9a8; padding: 10px 14px; border-radius: var(--radius); margin: 8px 0; }
 
-@page certificate { size: A4; margin: 0; }
+@page certificate { size: 8.5in 11in; margin: 0; }
 .sheet { page: certificate; --band: #a46a9c; --navy-ink: #2e3192; --red-ink: #e0222a; width: 210mm; height: 297mm; margin: 0 auto 16px; background: #fff; box-shadow: 0 1px 6px rgba(0, 0, 0, 0.25); position: relative; overflow: hidden; color: #1b1b1b; font-family: var(--serif); break-after: page; }
 .sheet-inner { padding: 0 14mm 12mm; height: 100%; display: flex; flex-direction: column; }
 .sheet.stationery .pre { visibility: hidden; }
@@ -302,9 +302,16 @@ a { color: var(--accent); }
 
 /* ---------- ID card (matches the printed 2025-26 card) ---------- */
 .idcard2 { width: 54mm; min-height: 86mm; background: #fff; border: 1px solid #999; font-size: 8px; display: flex; flex-direction: column; break-inside: avoid; overflow: hidden; }
-.id2-head { background: linear-gradient(#1c6fc4, #4aa3e8); color: #fff; text-align: center; padding: 4px 3px; line-height: 1.2; }
-.id2-head b { display: block; font-family: var(--serif); font-size: 9px; }
-.id2-head small { font-size: 6px; }
+.id2-head { background: linear-gradient(#1c6fc4, #4aa3e8); color: #fff; text-align: center; padding: 1.2mm 1mm; line-height: 1.15; display: flex; align-items: center; gap: 1mm; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.id2-seal { width: 10mm; height: 10mm; object-fit: contain; flex: none; }
+.id2-uaf { width: 11mm; object-fit: contain; flex: none; background: #fff; }
+.id2-word { flex: 1; display: flex; flex-direction: column; }
+.id2-word b { font-family: var(--serif); font-size: 11px; letter-spacing: 0.04em; }
+.id2-word span { font-size: 4.6px; }
+.id2-word small { font-size: 4px; }
+.id2-issuer { position: absolute; right: 1.5mm; bottom: 7mm; display: flex; flex-direction: column; align-items: center; width: 10mm; z-index: 1; }
+.id2-issuer img { width: 7mm; height: 7mm; object-fit: contain; }
+.id2-issuer small { font-size: 3.4px; color: #a4262c; }
 .id2-title { background: #a4262c; color: #fff; text-align: center; font-weight: 700; font-size: 11px; padding: 2px 0; }
 .id2-row { display: flex; justify-content: space-between; padding: 3px 5px 0; }
 .id2-row b { font-size: 8px; }
@@ -312,7 +319,7 @@ a { color: var(--accent); }
 .id2-photo { width: 24mm; height: 28mm; object-fit: cover; align-self: center; border: 1px solid #888; margin: 3px 0; }
 .id2-photo.blank { display: grid; place-items: center; color: var(--muted); }
 .id2-name { text-align: center; font-size: 10px; font-weight: 600; text-transform: uppercase; }
-.id2-line { padding: 1px 5px; }
+.id2-line { padding: 1px 12mm 1px 5px; }
 .id2-line em { font-style: normal; color: #a4262c; }
 .id2-foot { margin-top: auto; background: #12326b; color: #fff; text-align: center; padding: 3px; font-size: 7px; }
 @media print { .id-grid { grid-template-columns: repeat(3, 54mm); } }
@@ -362,3 +369,17 @@ a { color: var(--accent); }
 @media print { .admit2 { border: 0; margin: 0 auto; break-after: page; } }
 .idcard2.template { background-size: 100% 100%; background-repeat: no-repeat; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 .idcard2.template .pre { visibility: hidden; }
+
+/* ---------- Filling uploaded stationery: values sit at fixed spots on the page ---------- */
+.sheet.template { overflow: hidden; }
+.tpl-layer { position: absolute; inset: 0; }
+.tpl-at { position: absolute; transform: translateY(-50%); font-family: var(--sans); font-weight: 700; font-size: 3.7mm; color: #111; white-space: nowrap; overflow: hidden; }
+.tpl-line { font-family: var(--serif); font-size: 4.6mm; text-transform: uppercase; letter-spacing: 0.02em; }
+.tpl-div { font-size: 4.4mm; min-width: 12mm; text-align: center; }
+.tpl-photo { position: absolute; padding: 0.8mm; }
+.tpl-photo img { width: 100%; height: 100%; object-fit: cover; }
+.tpl-marks { position: absolute; overflow: hidden; }
+.tpl-marks .stmt-who { margin: 0 2mm 0.5mm; font-size: 9.5px; gap: 0 10px; }
+.tpl-marks .stmt-table { margin: 0.5mm 2mm; font-size: 9px; width: calc(100% - 4mm); }
+.tpl-marks .stmt-table th, .tpl-marks .stmt-table td { padding: 0.25mm 1.6mm; background: transparent; }
+.tpl-marks .stmt-result { margin: 0.5mm 2mm; font-size: 9.5px; gap: 0 12px; }

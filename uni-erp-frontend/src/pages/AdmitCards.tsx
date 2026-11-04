@@ -59,7 +59,7 @@ export function AdmitSheet({ c, template }: { c: Card; template?: PrintTemplate 
           <small>(ISO 9001 : 2015 Certified)</small>
           <i>Regd. by Govt. of NCT, New Delhi Regn. No. : S-60742</i>
         </div>
-        <div className="a2-iso" style={box(1327, 60, 1600, 90)}>ISO 9001 : 2015 CERTIFIED</div>
+        <div className="a2-iso" style={box(1327, 45, 1600, 85)}>ISO 9001 : 2015 CERTIFIED</div>
         <div className="a2-logo a2-uaf" style={box(1327, 87, 1600, 245)}><BrandLogo src="/branding/uaf.png" /></div>
         <div className="a2-sno" style={box(1290, 0, 1420, 30)}>S.No.</div>
         <div className="a2-banner" style={box(505, 335, 1117, 393)}>Admit Card ({session})</div>

@@ -10,6 +10,8 @@ const templateSchema = new mongoose.Schema(
     name: { type: String, required: [true, "Give the template a name"], trim: true },
     session: { type: String, trim: true, default: "" },
     course: { type: mongoose.Schema.Types.ObjectId, ref: "Course", default: null },
+    // Course length in years (e.g. 1 or 2). Empty = any length. Lets one upload cover every one-year or two-year course.
+    duration: { type: Number, default: null, min: 0.25, max: 6 },
     image: { type: String, required: true },
     // Fine alignment for this template, in millimetres
     dx: { type: Number, default: 0, min: -30, max: 30 },
@@ -18,7 +20,7 @@ const templateSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
-templateSchema.index({ kind: 1, session: 1, course: 1 }, { unique: true });
+templateSchema.index({ kind: 1, session: 1, course: 1, duration: 1 }, { unique: true });
 
 module.exports = mongoose.model("Template", templateSchema);
 module.exports.KINDS = KINDS;

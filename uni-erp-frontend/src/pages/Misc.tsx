@@ -466,7 +466,7 @@ function Roles() {
   )
 }
 
-const blankTpl = { kind: 'certificate' as TemplateKind, name: '', session: '', course: '', dx: '0', dy: '0' }
+const blankTpl = { kind: 'certificate' as TemplateKind, name: '', session: '', course: '', duration: '', dx: '0', dy: '0' }
 
 // Head office uploads a full-page image per document type; optionally limited to one session and/or course.
 function PrintTemplates() {
@@ -496,6 +496,7 @@ function PrintTemplates() {
     fd.append('name', form.name)
     fd.append('session', form.session)
     fd.append('course', form.course)
+    fd.append('duration', form.duration)
     fd.append('dx', form.dx)
     fd.append('dy', form.dy)
     if (file) fd.append('image', file)
@@ -521,7 +522,7 @@ function PrintTemplates() {
     <section className="panel">
       <p className="hint pad">
         Upload the blank design (jpg or png, up to 8 MB, A4 portrait for certificates and statements) and choose where it applies. For each print the most specific
-        template wins: session and course, then course, then session, then one set for everything. With none, the built-in design is used.
+        template wins: a named course, then the course length, then the session, then one set for everything. With none, the built-in design is used.
       </p>
       <form className="toolbar" onSubmit={submit}>
         <select required disabled={Boolean(editId)} value={form.kind} onChange={(e) => set('kind', e.target.value)} aria-label="Document type">
@@ -538,6 +539,12 @@ function PrintTemplates() {
           <option value="">All courses</option>
           {courses.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}
         </select>
+        <select value={form.duration} onChange={(e) => set('duration', e.target.value)} aria-label="Course length">
+          <option value="">Any course length</option>
+          <option value="1">One year courses</option>
+          <option value="2">Two year courses</option>
+          <option value="3">Three year courses</option>
+        </select>
         <label>Right (mm) <input type="number" step="0.5" style={{ width: 64 }} value={form.dx} onChange={(e) => set('dx', e.target.value)} /></label>
         <label>Down (mm) <input type="number" step="0.5" style={{ width: 64 }} value={form.dy} onChange={(e) => set('dy', e.target.value)} /></label>
         <input type="file" accept="image/jpeg,image/png" aria-label="Template image" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
@@ -550,7 +557,7 @@ function PrintTemplates() {
       <Notice error={error} />
       <table className="grid">
         <thead>
-          <tr><th>Preview</th><th>Document</th><th>Name</th><th>Session</th><th>Course</th><th>Status</th><th>Action</th></tr>
+          <tr><th>Preview</th><th>Document</th><th>Name</th><th>Session</th><th>Course</th><th>Length</th><th>Status</th><th>Action</th></tr>
         </thead>
         <tbody>
           {rows.map((t) => (
@@ -560,9 +567,10 @@ function PrintTemplates() {
               <td>{t.name}</td>
               <td>{t.session || 'All'}</td>
               <td>{t.course?.name ?? 'All'}</td>
+              <td>{t.duration ? `${t.duration} yr` : 'Any'}</td>
               <td>{t.active ? 'On' : 'Off'}</td>
               <td>
-                <button className="btn-mod" onClick={() => { setEditId(t._id); setFile(null); setForm({ kind: t.kind, name: t.name, session: t.session, course: t.course?._id ?? '', dx: String(t.dx), dy: String(t.dy) }) }}>Modify</button>{' '}
+                <button className="btn-mod" onClick={() => { setEditId(t._id); setFile(null); setForm({ kind: t.kind, name: t.name, session: t.session, course: t.course?._id ?? '', duration: t.duration ? String(t.duration) : '', dx: String(t.dx), dy: String(t.dy) }) }}>Modify</button>{' '}
                 <button className="btn-quiet" onClick={() => toggle(t)}>{t.active ? 'Switch off' : 'Switch on'}</button>{' '}
                 <button className="btn-quiet" onClick={() => remove(t)}>Delete</button>
               </td>

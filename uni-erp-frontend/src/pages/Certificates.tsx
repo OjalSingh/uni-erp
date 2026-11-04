@@ -2,6 +2,7 @@ import { pickTemplate, useTemplates } from '../templates.ts'
 import type { PrintTemplate } from '../templates.ts'
 import Watermark from '../components/Watermark.tsx'
 import { useCallback, useEffect, useState } from 'react'
+import type { ReactNode } from 'react'
 import { api } from '../api.ts'
 import PrintPage, { Selectable } from '../components/PrintPage.tsx'
 import ScheduleSelect from '../components/ScheduleSelect.tsx'
@@ -23,7 +24,7 @@ interface Cert {
   rollNo?: string
   part: number
   subjectMarks: SubjectMark[]
-  student: { enrollNo: string; name: string; fatherName?: string }
+  student: { enrollNo: string; name: string; fatherName?: string; image?: string }
   course: { _id: string; name: string; parts: number; durationYears?: number; courseType?: { name: string } }
   schedule: { examTerm: string; year: number; session?: string }
   result: ResultSummary
@@ -32,6 +33,33 @@ interface Cert {
 }
 
 type Mode = 'stationery' | 'plain' | 'template'
+type Paper = 'letter' | 'a4'
+
+// Where the blanks sit on the printed stationery, as fractions of the page (x = start of the text, y = middle of the text line).
+// Uploaded templates that use the same layout need no setup; a template with its own offsets uses Right/Down (mm).
+const POS = {
+  enroll: { x: 0.185, y: 0.224 },
+  roll: { x: 0.878, y: 0.224 },
+  date: { x: 0.095, y: 0.943 },
+  statementDate: { x: 0.125, y: 0.936 },
+  name: { x: 0.345, y: 0.481, w: 0.58 },
+  father: { x: 0.21, y: 0.515, w: 0.48 },
+  nameOne: { x: 0.324, y: 0.481, w: 0.61 },
+  fatherOne: { x: 0.231, y: 0.509, w: 0.5 },
+  division: { x: 0.294, y: 0.617 },
+  divisionTheory: { x: 0.328, y: 0.627 },
+  divisionPractical: { x: 0.738, y: 0.627 },
+  photo: { x: 0.811, y: 0.055, w: 0.141, h: 0.134 },
+  marks: { x: 0.05, y: 0.475, w: 0.9, h: 0.41 },
+}
+type Spot = { x: number; y: number; w?: number; h?: number }
+function At({ p, children, className = '' }: { p: Spot; children: ReactNode; className?: string }) {
+  return (
+    <div className={`tpl-at ${className}`} style={{ left: `${p.x * 100}%`, top: `${p.y * 100}%`, width: p.w ? `${p.w * 100}%` : undefined }}>
+      {children}
+    </div>
+  )
+}
 const SETTINGS_KEY = 'uni-erp-certificate-print'
 const today = () => new Date().toLocaleDateString('en-IN')
 const titleCase = (s = '') => s.split(' ').map((w) => (w.includes('(') ? w : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())).join(' ')
@@ -91,10 +119,32 @@ export function CertificateSheet({ c, mode, dx, dy, template }: { c: Cert; mode:
   const theory = c.subjectMarks.filter((s) => s.type === 'Theory')
   const practical = c.subjectMarks.filter((s) => s.type === 'Practical')
   const multi = c.course.parts > 1
+  if (template) {
+    const one = !multi
+    return (
+      <section className="sheet template" style={{ backgroundImage: `url(${template.image})` }}>
+        <div className="tpl-layer" style={{ transform: `translate(${dx + template.dx}mm, ${dy + template.dy}mm)` }}>
+          <At p={POS.enroll}>{c.student.enrollNo}</At>
+          <At p={POS.roll}>{c.rollNo}</At>
+          <At p={one ? POS.nameOne : POS.name} className="tpl-line">{c.student.name}</At>
+          <At p={one ? POS.fatherOne : POS.father} className="tpl-line">{c.student.fatherName}</At>
+          {one ? (
+            <>
+              <At p={POS.divisionTheory} className="tpl-div">{c.result.theory.division}</At>
+              <At p={POS.divisionPractical} className="tpl-div">{c.result.practical.division}</At>
+            </>
+          ) : (
+            <At p={POS.division} className="tpl-div">{c.final?.division}</At>
+          )}
+          <At p={POS.date}>{today()}</At>
+        </div>
+      </section>
+    )
+  }
   return (
-    <section className={`sheet ${mode}`} style={template ? { backgroundImage: `url(${template.image})` } : undefined}>
+    <section className={`sheet ${mode}`}>
       <Watermark className="pre" />
-      <div className="sheet-inner" style={{ transform: `translate(${dx + (template?.dx ?? 0)}mm, ${dy + (template?.dy ?? 0)}mm)` }}>
+      <div className="sheet-inner" style={{ transform: `translate(${dx}mm, ${dy}mm)` }}>
         <Header session={c.schedule.session} />
         <IdLine c={c} />
         <Titles c={c} title="Certificate" />
@@ -175,78 +225,102 @@ export function StatementSheet({ c, mode, dx, dy, template }: { c: Cert; mode: M
       </tr>
     </>
   )
+  const body = (
+    <>
+        <dl className="stmt-who">
+        <dt>Name</dt>
+        <dd>{c.student.name}</dd>
+        <dt>Father's name</dt>
+        <dd>{c.student.fatherName}</dd>
+        {c.course.parts > 1 && (
+          <>
+            <dt>Part</dt>
+            <dd>
+              {c.part} of {c.course.parts}
+            </dd>
+          </>
+        )}
+      </dl>
+      <table className="stmt-table">
+        <thead>
+          <tr>
+            <th>Paper</th>
+            <th>Subject</th>
+            <th>Max. marks</th>
+            <th>Marks obtained</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows('Theory').length > 0 && group('Theory', c.result.theory)}
+          {rows('Practical').length > 0 && group('Practical', c.result.practical)}
+          <tr className="stmt-total">
+            <td colSpan={2}>Grand total</td>
+            <td>{c.result.total.max}</td>
+            <td>{c.result.total.obtained}</td>
+          </tr>
+        </tbody>
+      </table>
+      <dl className="stmt-result">
+        <dt>Percentage</dt>
+        <dd>{pct(c.result.total.percent)}</dd>
+        <dt>Theory</dt>
+        <dd>
+          {pct(c.result.theory.percent)}, {divisionText(c.result.theory.division)}
+        </dd>
+        <dt>Practical</dt>
+        <dd>
+          {pct(c.result.practical.percent)}, {divisionText(c.result.practical.division)}
+        </dd>
+        <dt>Result</dt>
+        <dd>
+          <b>{c.result.qualified ? divisionText(c.result.total.division) : 'Not qualified'}</b>
+        </dd>
+        {c.partOne && (
+          <>
+            <dt>Part 1</dt>
+            <dd>
+              {c.partOne.obtained} of {c.partOne.total}
+            </dd>
+          </>
+        )}
+        {c.final && (
+          <>
+            <dt>All parts together</dt>
+            <dd>
+              {c.final.obtained} of {c.final.max} ({pct(c.final.percent)}), {divisionText(c.final.division)}
+            </dd>
+          </>
+        )}
+      </dl>
+    </>
+  )
+  if (template) {
+    return (
+      <section className="sheet template" style={{ backgroundImage: `url(${template.image})` }}>
+        <div className="tpl-layer" style={{ transform: `translate(${dx + template.dx}mm, ${dy + template.dy}mm)` }}>
+          <At p={POS.enroll}>{c.student.enrollNo}</At>
+          <At p={POS.roll}>{c.rollNo}</At>
+          {c.student.image && (
+            <div className="tpl-photo" style={{ left: `${POS.photo.x * 100}%`, top: `${POS.photo.y * 100}%`, width: `${POS.photo.w * 100}%`, height: `${POS.photo.h * 100}%` }}>
+              <img src={c.student.image} alt="" />
+            </div>
+          )}
+          <div className="tpl-marks" style={{ left: `${POS.marks.x * 100}%`, top: `${POS.marks.y * 100}%`, width: `${POS.marks.w * 100}%`, height: `${POS.marks.h * 100}%` }}>
+            {body}
+          </div>
+          <At p={POS.statementDate}>{today()}</At>
+        </div>
+      </section>
+    )
+  }
   return (
-    <section className={`sheet ${mode}`} style={template ? { backgroundImage: `url(${template.image})` } : undefined}>
+    <section className={`sheet ${mode}`}>
       <Watermark className="pre" />
-      <div className="sheet-inner" style={{ transform: `translate(${dx + (template?.dx ?? 0)}mm, ${dy + (template?.dy ?? 0)}mm)` }}>
+      <div className="sheet-inner" style={{ transform: `translate(${dx}mm, ${dy}mm)` }}>
         <Header session={c.schedule.session} />
         <IdLine c={c} />
         <Titles c={c} title="Mark's Statement" />
-        <dl className="stmt-who">
-          <dt>Name</dt>
-          <dd>{c.student.name}</dd>
-          <dt>Father's name</dt>
-          <dd>{c.student.fatherName}</dd>
-          {c.course.parts > 1 && (
-            <>
-              <dt>Part</dt>
-              <dd>
-                {c.part} of {c.course.parts}
-              </dd>
-            </>
-          )}
-        </dl>
-        <table className="stmt-table">
-          <thead>
-            <tr>
-              <th>Paper</th>
-              <th>Subject</th>
-              <th>Max. marks</th>
-              <th>Marks obtained</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows('Theory').length > 0 && group('Theory', c.result.theory)}
-            {rows('Practical').length > 0 && group('Practical', c.result.practical)}
-            <tr className="stmt-total">
-              <td colSpan={2}>Grand total</td>
-              <td>{c.result.total.max}</td>
-              <td>{c.result.total.obtained}</td>
-            </tr>
-          </tbody>
-        </table>
-        <dl className="stmt-result">
-          <dt>Percentage</dt>
-          <dd>{pct(c.result.total.percent)}</dd>
-          <dt>Theory</dt>
-          <dd>
-            {pct(c.result.theory.percent)}, {divisionText(c.result.theory.division)}
-          </dd>
-          <dt>Practical</dt>
-          <dd>
-            {pct(c.result.practical.percent)}, {divisionText(c.result.practical.division)}
-          </dd>
-          <dt>Result</dt>
-          <dd>
-            <b>{c.result.qualified ? divisionText(c.result.total.division) : 'Not qualified'}</b>
-          </dd>
-          {c.partOne && (
-            <>
-              <dt>Part 1</dt>
-              <dd>
-                {c.partOne.obtained} of {c.partOne.total}
-              </dd>
-            </>
-          )}
-          {c.final && (
-            <>
-              <dt>All parts together</dt>
-              <dd>
-                {c.final.obtained} of {c.final.max} ({pct(c.final.percent)}), {divisionText(c.final.division)}
-              </dd>
-            </>
-          )}
-        </dl>
+        {body}
         <footer className="sheet-foot stmt-foot">
           <span>
             <span className="pre">Date : </span>
@@ -274,11 +348,11 @@ export default function Certificates() {
   const [skip, setSkip] = useState<string[]>([])
   const [error, setError] = useState('')
   const templates = useTemplates()
-  const [settings, setSettings] = useState<{ mode: Mode; dx: number; dy: number }>(() => {
+  const [settings, setSettings] = useState<{ mode: Mode; paper: Paper; dx: number; dy: number }>(() => {
     try {
-      return { mode: 'template', dx: 0, dy: 0, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') }
+      return { mode: 'template', paper: 'letter', dx: 0, dy: 0, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') }
     } catch {
-      return { mode: 'template', dx: 0, dy: 0 }
+      return { mode: 'template', paper: 'letter', dx: 0, dy: 0 }
     }
   })
 
@@ -322,6 +396,13 @@ export default function Certificates() {
               <input type="radio" name="mode" checked={settings.mode === 'plain'} onChange={() => update({ mode: 'plain' })} /> Plain A4 (full design)
             </label>
             <label>
+              Paper{' '}
+              <select value={settings.paper} onChange={(e) => update({ paper: e.target.value as Paper })}>
+                <option value="letter">Letter, 8.5 x 11 in (the supplied stationery)</option>
+                <option value="a4">A4</option>
+              </select>
+            </label>
+            <label>
               Move right (mm) <input type="number" step="0.5" style={{ width: 70 }} value={settings.dx} onChange={(e) => update({ dx: Number(e.target.value) || 0 })} />
             </label>
             <label>
@@ -335,10 +416,11 @@ export default function Certificates() {
       error={error}
       empty={schedules.length === 0 ? 'No results have been published yet. Publish a result first.' : 'No marks entered for this schedule.'}
     >
+      <style>{`@page certificate { size: ${settings.paper === 'a4' ? 'A4 portrait' : '8.5in 11in'}; margin: 0 } .sheet { ${settings.paper === 'a4' ? '' : 'width: 215.9mm; height: 279.4mm;'} }`}</style>
       {certs.map((c) => {
         const label = `${c.student.name} (${c.rollNo})`
         const finalPart = c.part === c.course.parts
-        const tplFor = (kind: 'certificate' | 'statement') => (settings.mode === 'template' ? pickTemplate(templates, kind, c.schedule.session, c.course._id) : undefined)
+        const tplFor = (kind: 'certificate' | 'statement') => (settings.mode === 'template' ? pickTemplate(templates, kind, c.schedule.session, c.course._id, c.course.durationYears) : undefined)
         const modeFor = (t?: PrintTemplate): Mode => (settings.mode === 'template' ? (t ? 'template' : 'plain') : settings.mode)
         const certTpl = tplFor('certificate')
         const stmtTpl = tplFor('statement')
