@@ -1,3 +1,5 @@
+import { pickTemplate, useTemplates } from '../templates.ts'
+import type { PrintTemplate } from '../templates.ts'
 import Watermark from '../components/Watermark.tsx'
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '../api.ts'
@@ -22,14 +24,14 @@ interface Cert {
   part: number
   subjectMarks: SubjectMark[]
   student: { enrollNo: string; name: string; fatherName?: string }
-  course: { name: string; parts: number; durationYears?: number; courseType?: { name: string } }
+  course: { _id: string; name: string; parts: number; durationYears?: number; courseType?: { name: string } }
   schedule: { examTerm: string; year: number; session?: string }
   result: ResultSummary
   final: Final | null
   partOne: PartOne | null
 }
 
-type Mode = 'stationery' | 'plain'
+type Mode = 'stationery' | 'plain' | 'template'
 const SETTINGS_KEY = 'uni-erp-certificate-print'
 const today = () => new Date().toLocaleDateString('en-IN')
 const titleCase = (s = '') => s.split(' ').map((w) => (w.includes('(') ? w : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())).join(' ')
@@ -84,15 +86,15 @@ function Titles({ c, title }: { c: Cert; title: string }) {
   )
 }
 
-export function CertificateSheet({ c, mode, dx, dy }: { c: Cert; mode: Mode; dx: number; dy: number }) {
+export function CertificateSheet({ c, mode, dx, dy, template }: { c: Cert; mode: Mode; dx: number; dy: number; template?: PrintTemplate }) {
   const duration = durationWords(c.course.durationYears)
   const theory = c.subjectMarks.filter((s) => s.type === 'Theory')
   const practical = c.subjectMarks.filter((s) => s.type === 'Practical')
   const multi = c.course.parts > 1
   return (
-    <section className={`sheet ${mode}`}>
+    <section className={`sheet ${mode}`} style={template ? { backgroundImage: `url(${template.image})` } : undefined}>
       <Watermark className="pre" />
-      <div className="sheet-inner" style={{ transform: `translate(${dx}mm, ${dy}mm)` }}>
+      <div className="sheet-inner" style={{ transform: `translate(${dx + (template?.dx ?? 0)}mm, ${dy + (template?.dy ?? 0)}mm)` }}>
         <Header session={c.schedule.session} />
         <IdLine c={c} />
         <Titles c={c} title="Certificate" />
@@ -151,7 +153,7 @@ export function CertificateSheet({ c, mode, dx, dy }: { c: Cert; mode: Mode; dx:
   )
 }
 
-export function StatementSheet({ c, mode, dx, dy }: { c: Cert; mode: Mode; dx: number; dy: number }) {
+export function StatementSheet({ c, mode, dx, dy, template }: { c: Cert; mode: Mode; dx: number; dy: number; template?: PrintTemplate }) {
   const rows = (type: SubjectMark['type']) => c.subjectMarks.filter((s) => s.type === type)
   const group = (type: SubjectMark['type'], b: ResultSummary['theory']) => (
     <>
@@ -174,9 +176,9 @@ export function StatementSheet({ c, mode, dx, dy }: { c: Cert; mode: Mode; dx: n
     </>
   )
   return (
-    <section className={`sheet ${mode}`}>
+    <section className={`sheet ${mode}`} style={template ? { backgroundImage: `url(${template.image})` } : undefined}>
       <Watermark className="pre" />
-      <div className="sheet-inner" style={{ transform: `translate(${dx}mm, ${dy}mm)` }}>
+      <div className="sheet-inner" style={{ transform: `translate(${dx + (template?.dx ?? 0)}mm, ${dy + (template?.dy ?? 0)}mm)` }}>
         <Header session={c.schedule.session} />
         <IdLine c={c} />
         <Titles c={c} title="Mark's Statement" />
@@ -271,11 +273,12 @@ export default function Certificates() {
   const [certs, setCerts] = useState<Cert[]>([])
   const [skip, setSkip] = useState<string[]>([])
   const [error, setError] = useState('')
+  const templates = useTemplates()
   const [settings, setSettings] = useState<{ mode: Mode; dx: number; dy: number }>(() => {
     try {
-      return { mode: 'stationery', dx: 0, dy: 0, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') }
+      return { mode: 'template', dx: 0, dy: 0, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') }
     } catch {
-      return { mode: 'stationery', dx: 0, dy: 0 }
+      return { mode: 'template', dx: 0, dy: 0 }
     }
   })
 
@@ -310,6 +313,9 @@ export default function Certificates() {
           <fieldset className="print-mode">
             <legend>Print on</legend>
             <label>
+              <input type="radio" name="mode" checked={settings.mode === 'template'} onChange={() => update({ mode: 'template' })} /> Uploaded template for the session and course (built-in design if none)
+            </label>
+            <label>
               <input type="radio" name="mode" checked={settings.mode === 'stationery'} onChange={() => update({ mode: 'stationery' })} /> Pre-printed stationery (fills in the blanks only)
             </label>
             <label>
@@ -332,6 +338,10 @@ export default function Certificates() {
       {certs.map((c) => {
         const label = `${c.student.name} (${c.rollNo})`
         const finalPart = c.part === c.course.parts
+        const tplFor = (kind: 'certificate' | 'statement') => (settings.mode === 'template' ? pickTemplate(templates, kind, c.schedule.session, c.course._id) : undefined)
+        const modeFor = (t?: PrintTemplate): Mode => (settings.mode === 'template' ? (t ? 'template' : 'plain') : settings.mode)
+        const certTpl = tplFor('certificate')
+        const stmtTpl = tplFor('statement')
         const canCertify = !c.result.incomplete && c.result.qualified && finalPart && (c.course.parts === 1 || c.final)
         return (
           <Selectable key={c._id} on={!skip.includes(c._id)} onToggle={() => toggle(c._id)} label={label}>
@@ -339,12 +349,12 @@ export default function Certificates() {
               <Notice>{`${label}: marks are missing for ${c.result.missingPapers} paper(s). Complete the marks before printing.`}</Notice>
             ) : (
               <>
-                {canCertify ? <CertificateSheet c={c} mode={settings.mode} dx={settings.dx} dy={settings.dy} /> : (
+                {canCertify ? <CertificateSheet c={c} mode={modeFor(certTpl)} template={certTpl} dx={settings.dx} dy={settings.dy} /> : (
                   <Notice>
                     {!c.result.qualified ? `${label}: did not qualify, so only the mark statement is printed.` : !finalPart ? `${label}: a certificate is issued after the final part, so only the mark statement is printed.` : `${label}: Part 1 marks are not on record, so only the mark statement is printed.`}
                   </Notice>
                 )}
-                <StatementSheet c={c} mode={settings.mode} dx={settings.dx} dy={settings.dy} />
+                <StatementSheet c={c} mode={modeFor(stmtTpl)} template={stmtTpl} dx={settings.dx} dy={settings.dy} />
               </>
             )}
           </Selectable>

@@ -26,4 +26,4 @@ export const MODULES: ModuleDef[] = [
 export const GROUPS = ['Admissions', 'Examinations', 'Documents', 'Resources', 'Account']
 
 // Master-data screens under "Miscellaneous"
-export const MISC = ['Course Type', 'Course Details', 'Subject Details', 'User Role', 'Financial year', 'State', 'City', 'Menu', 'Sub Menu']
+export const MISC = ['Course Type', 'Course Details', 'Subject Details', 'Print Templates', 'User Role', 'Financial year', 'State', 'City', 'Menu', 'Sub Menu']
