@@ -30,6 +30,7 @@ export default function Login() {
   return (
     <div className="login">
       <section className="login-hero">
+        <img className="login-logo" src="/branding/seal.png" alt="AIECCE" />
         <h1>
           Advance Information in Early Childhood Care &amp; Education
         </h1>
@@ -49,7 +50,7 @@ export default function Login() {
             {busy ? 'Signing in...' : 'Sign in'}
           </button>
           <p className="login-student">
-            Student? <Link to="/result">Check your result</Link>
+            Student? <Link to="/result">Check your result</Link> · <Link to="/">Back to website</Link>
           </p>
         </form>
       </section>

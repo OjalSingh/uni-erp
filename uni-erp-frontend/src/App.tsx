@@ -1,9 +1,10 @@
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import { useAuth } from './auth.tsx'
 import Layout from './components/Layout.tsx'
 import Can from './components/Can.tsx'
 import Login from './pages/Login.tsx'
+import Landing from './pages/Landing.tsx'
 import Dashboard from './pages/Dashboard.tsx'
 import Students from './pages/Students.tsx'
 import Centers from './pages/Centers.tsx'
@@ -25,12 +26,6 @@ import Certificates from './pages/Certificates.tsx'
 import ChangePassword from './pages/ChangePassword.tsx'
 import { MODULES } from './modules.ts'
 
-function Protected({ children }: { children: ReactNode }) {
-  const { user, loading } = useAuth()
-  if (loading) return <p style={{ padding: 24 }}>Loading...</p>
-  return user ? <>{children}</> : <Navigate to="/login" replace />
-}
-
 const built: Record<string, ReactNode> = {
   students: <Students />,
   centers: <Centers />,
@@ -46,6 +41,14 @@ const built: Record<string, ReactNode> = {
   stock: <Stock />,
 }
 
+function Home() {
+  const { user, loading } = useAuth()
+  const { pathname } = useLocation()
+  if (loading) return <p style={{ padding: 24 }}>Loading...</p>
+  if (user) return <Layout />
+  return pathname === '/' ? <Landing /> : <Navigate to="/login" replace />
+}
+
 export default function App() {
   return (
     <Routes>
@@ -53,11 +56,7 @@ export default function App() {
       <Route path="/result" element={<Result />} />
       <Route
         path="/"
-        element={
-          <Protected>
-            <Layout />
-          </Protected>
-        }
+        element={<Home />}
       >
         <Route index element={<Dashboard />} />
         {MODULES.map((m) => {
