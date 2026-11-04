@@ -1,9 +1,11 @@
+import { pickTemplate, useTemplates } from '../templates.ts'
+import type { PrintTemplate } from '../templates.ts'
+import BrandLogo from '../components/BrandLogo.tsx'
 import Watermark from '../components/Watermark.tsx'
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '../api.ts'
 import { useAuth } from '../auth.tsx'
 import PrintPage, { Selectable } from '../components/PrintPage.tsx'
-import { INSTITUTE_NAME } from '../constants.ts'
 import { useSessions } from '../lookups.ts'
 import { errMsg, fmtDate } from '../format.ts'
 
@@ -20,7 +22,7 @@ interface Card {
   image?: string
   session: string
   center: { code: string; name: string }
-  course: { name: string }
+  course: { _id: string; name: string }
 }
 interface CenterOpt {
   _id: string
@@ -28,7 +30,39 @@ interface CenterOpt {
   name: string
 }
 
+export function IdCardFace({ c, template }: { c: Card; template?: PrintTemplate }) {
+  return (
+    <article className={`idcard2 wm-host ${template ? 'template' : ''}`} style={template ? { backgroundImage: `url(${template.image})` } : undefined}>
+    <Watermark className="pre" />
+    <div className="id2-head pre">
+      <BrandLogo src="/branding/seal.png" className="id2-seal" />
+      <div className="id2-word">
+        <b>A.I.E.C.C.E.</b>
+        <span>Advance Information in Early Childhood Care &amp; Education N.Delhi</span>
+        <small>Regd. by Govt. of NCT, New Delhi. Regn. No.: S-60742</small>
+      </div>
+      <BrandLogo src="/branding/uaf.png" className="id2-uaf" />
+    </div>
+    <div className="id2-title pre">Identity Card {c.session}</div>
+    <div className="id2-row">
+      <span>Enrollment No <b>{c.enrollNo}</b></span>
+      <span>Centre Code <b>{c.center?.code}</b></span>
+    </div>
+    <div className="id2-course">Course Name : {c.course?.name}</div>
+    {c.image ? <img className="id2-photo" src={c.image} alt="" /> : <div className="id2-photo blank">Photo</div>}
+    <div className="id2-name">{c.name}</div>
+    <div className="id2-line"><em>Father's Name :</em> {c.fatherName}</div>
+    <div className="id2-line"><em>Address :</em> {[c.address, c.city, c.pinCode].filter(Boolean).join(', ')}</div>
+    <div className="id2-line"><em>Mob. :</em> {c.mobile}</div>
+    <div className="id2-issuer pre"><BrandLogo src="/branding/issuing.png" /><small>Issuing Authority</small></div>
+    <div className="id2-foot">{c.center?.name}</div>
+  </article>
+  )
+}
+
 export default function IdCards() {
+  const templates = useTemplates()
+  const tpl = (c: Card) => pickTemplate(templates, 'id-card', c.session, c.course?._id)
   const { user } = useAuth()
   const { sessions, current, loaded } = useSessions()
   const [session, setSession] = useState('')
@@ -92,25 +126,7 @@ export default function IdCards() {
       <div className="id-grid">
         {cards.map((c) => (
           <Selectable key={c._id} on={!skip.includes(c._id)} onToggle={() => toggle(c._id)} label={`${c.name} (${c.enrollNo})`}>
-            <article className="idcard2 wm-host">
-              <Watermark />
-              <div className="id2-head">
-                <b>{INSTITUTE_NAME}</b>
-                <small>Regd. by Govt. of NCT, New Delhi</small>
-              </div>
-              <div className="id2-title">Identity Card {c.session}</div>
-              <div className="id2-row">
-                <span>Enrollment No <b>{c.enrollNo}</b></span>
-                <span>Centre Code <b>{c.center?.code}</b></span>
-              </div>
-              <div className="id2-course">Course Name : {c.course?.name}</div>
-              {c.image ? <img className="id2-photo" src={c.image} alt="" /> : <div className="id2-photo blank">Photo</div>}
-              <div className="id2-name">{c.name}</div>
-              <div className="id2-line"><em>Father's Name :</em> {c.fatherName}</div>
-              <div className="id2-line"><em>Address :</em> {[c.address, c.city, c.pinCode].filter(Boolean).join(', ')}</div>
-              <div className="id2-line"><em>Mob. :</em> {c.mobile}</div>
-              <div className="id2-foot">{c.center?.name}</div>
-            </article>
+            <IdCardFace c={c} template={tpl(c)} />
           </Selectable>
         ))}
       </div>

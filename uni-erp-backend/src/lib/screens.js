@@ -15,7 +15,7 @@ const SCREENS = [
   { key: "change-password", label: "Change Password", group: "Account" },
 ];
 
-const MISC_SCREENS = ["Course Type", "Course Details", "Subject Details", "User Role", "Financial year", "State", "City", "Menu", "Sub Menu"];
+const MISC_SCREENS = ["Course Type", "Course Details", "Subject Details", "Print Templates", "User Role", "Financial year", "State", "City", "Menu", "Sub Menu"];
 const GROUPS = ["Admissions", "Examinations", "Documents", "Resources", "Account"];
 
 // The API only lets a center login use these, so a center role can never be given more in the sidebar than it can use

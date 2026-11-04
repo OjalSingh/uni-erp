@@ -47,7 +47,7 @@ router.get("/admit-cards", requirePermission("admitcards:print"), async (req, re
     .populate("student", "enrollNo name fatherName dob gender image")
     .populate("center", "code name")
     .populate("course", "name code")
-    .populate("schedule", "examId examTerm year");
+    .populate("schedule", "examId examTerm year session");
   res.json(items);
 });
 

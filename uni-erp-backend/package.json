@@ -9,6 +9,8 @@
     "seed": "node src/seed.js",
     "import-sql": "node src/import/run.js",
     "import-selftest": "node src/import/selftest.js",
+    "import-photos": "node src/import/photos.js",
+    "seed-templates": "node src/seed-templates.js",
     "rbac-selftest": "node src/rbac-selftest.js"
   },
   "keywords": [],

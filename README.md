@@ -91,3 +91,9 @@ npm run import-sql -- path/to/dump.sql --apply # imports into the database in MO
 ## Not built yet
 
 Registration form UI, Employee Details, Fill Exam Form, Mark Information UI, Certificate / ID Card / Admit Card printing, Publish Result, Book Allocated, Stock Details, Change Password UI, and the Miscellaneous master-data screens.
+
+## Print templates
+
+Head office uploads a full-page image under **Miscellaneous > Print Templates** for the certificate, mark statement, admit card or ID card. A template can be limited to one session and/or one course; the most specific match is used when printing (session + course, then course, then session, then all). With no template, the built-in design is used. After pulling this change run `npm run seed` once in `uni-erp-backend` so the new Miscellaneous screen appears in the sidebar.
+
+Run `npm run seed-templates` (backend) once to load the supplied 2019-20 to 2025-26 certificate and mark statement stationery as templates (one-year and two-year versions). Student photos from the old system are linked with `npm run import-photos -- <folder>` (see the comments at the top of `src/import/photos.js`).
