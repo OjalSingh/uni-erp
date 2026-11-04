@@ -1,3 +1,4 @@
+import Watermark from '../components/Watermark.tsx'
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '../api.ts'
 import { useAuth } from '../auth.tsx'
@@ -13,6 +14,9 @@ interface Card {
   fatherName: string
   dob: string
   mobile: string
+  address?: string
+  city?: string
+  pinCode?: string
   image?: string
   session: string
   center: { code: string; name: string }
@@ -88,31 +92,24 @@ export default function IdCards() {
       <div className="id-grid">
         {cards.map((c) => (
           <Selectable key={c._id} on={!skip.includes(c._id)} onToggle={() => toggle(c._id)} label={`${c.name} (${c.enrollNo})`}>
-            <article className="card idcard">
-              <header>
+            <article className="idcard2 wm-host">
+              <Watermark />
+              <div className="id2-head">
                 <b>{INSTITUTE_NAME}</b>
-                <span>Student identity card, {c.session}</span>
-              </header>
-              <div className="card-body">
-                {c.image ? <img className="card-photo" src={c.image} alt="" /> : <div className="card-photo blank">Photo</div>}
-                <dl>
-                  <dt>Name</dt>
-                  <dd>{c.name}</dd>
-                  <dt>Enrollment No</dt>
-                  <dd>{c.enrollNo}</dd>
-                  <dt>Course</dt>
-                  <dd>{c.course?.name}</dd>
-                  <dt>Date of birth</dt>
-                  <dd>{fmtDate(c.dob)}</dd>
-                  <dt>Center</dt>
-                  <dd>{c.center?.code}</dd>
-                  <dt>Mobile</dt>
-                  <dd>{c.mobile}</dd>
-                </dl>
+                <small>Regd. by Govt. of NCT, New Delhi</small>
               </div>
-              <footer>
-                <span>Authorised signatory</span>
-              </footer>
+              <div className="id2-title">Identity Card {c.session}</div>
+              <div className="id2-row">
+                <span>Enrollment No <b>{c.enrollNo}</b></span>
+                <span>Centre Code <b>{c.center?.code}</b></span>
+              </div>
+              <div className="id2-course">Course Name : {c.course?.name}</div>
+              {c.image ? <img className="id2-photo" src={c.image} alt="" /> : <div className="id2-photo blank">Photo</div>}
+              <div className="id2-name">{c.name}</div>
+              <div className="id2-line"><em>Father's Name :</em> {c.fatherName}</div>
+              <div className="id2-line"><em>Address :</em> {[c.address, c.city, c.pinCode].filter(Boolean).join(', ')}</div>
+              <div className="id2-line"><em>Mob. :</em> {c.mobile}</div>
+              <div className="id2-foot">{c.center?.name}</div>
             </article>
           </Selectable>
         ))}

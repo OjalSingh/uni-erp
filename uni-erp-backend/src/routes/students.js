@@ -35,7 +35,7 @@ router.get("/id-cards", requirePermission("idcards:print"), async (req, res) => 
   }
   res.json(
     await Student.find(filter).sort({ enrollNo: 1 }).limit(200)
-      .select("enrollNo name fatherName dob mobile image session center course")
+      .select("enrollNo name fatherName dob mobile image session center course address city pinCode")
       .populate("center", "code name").populate("course", "name")
   );
 });

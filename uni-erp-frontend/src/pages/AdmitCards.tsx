@@ -1,3 +1,4 @@
+import Watermark from '../components/Watermark.tsx'
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '../api.ts'
 import PrintPage, { Selectable } from '../components/PrintPage.tsx'
@@ -56,7 +57,8 @@ export default function AdmitCards() {
     >
       {cards.map((c) => (
         <Selectable key={c._id} on={!skip.includes(c._id)} onToggle={() => toggle(c._id)} label={`${c.student.name} (${c.rollNo})`}>
-          <article className="card admit">
+          <article className="card admit wm-host">
+            <Watermark />
             <header>
               <b>{INSTITUTE_NAME}</b>
               <span>

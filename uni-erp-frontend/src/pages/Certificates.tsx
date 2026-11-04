@@ -1,3 +1,4 @@
+import Watermark from '../components/Watermark.tsx'
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '../api.ts'
 import PrintPage, { Selectable } from '../components/PrintPage.tsx'
@@ -90,6 +91,7 @@ export function CertificateSheet({ c, mode, dx, dy }: { c: Cert; mode: Mode; dx:
   const multi = c.course.parts > 1
   return (
     <section className={`sheet ${mode}`}>
+      <Watermark className="pre" />
       <div className="sheet-inner" style={{ transform: `translate(${dx}mm, ${dy}mm)` }}>
         <Header session={c.schedule.session} />
         <IdLine c={c} />
@@ -173,6 +175,7 @@ export function StatementSheet({ c, mode, dx, dy }: { c: Cert; mode: Mode; dx: n
   )
   return (
     <section className={`sheet ${mode}`}>
+      <Watermark className="pre" />
       <div className="sheet-inner" style={{ transform: `translate(${dx}mm, ${dy}mm)` }}>
         <Header session={c.schedule.session} />
         <IdLine c={c} />
