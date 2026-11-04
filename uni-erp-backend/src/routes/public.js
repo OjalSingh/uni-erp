@@ -99,4 +99,11 @@ router.post("/result", lookupLimit, async (req, res) => {
   res.json({ statements });
 });
 
+// Courses for the public landing page (names and lengths only)
+router.get("/courses", pageLimit, async (_req, res) => {
+  const { Course } = require("../models/Course");
+  const rows = await Course.find().populate("courseType", "name").select("name durationYears courseType").sort({ durationYears: -1, name: 1 }).lean();
+  res.json(rows.map((c) => ({ name: c.name, durationYears: c.durationYears, type: c.courseType?.name })));
+});
+
 module.exports = router;

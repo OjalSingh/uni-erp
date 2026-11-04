@@ -16,8 +16,11 @@ export default function Layout() {
     <div className="shell">
       <aside className="sidebar">
         <div className="brand">
-          <span className="brand-name">AIECCE</span>
-          <span className="brand-sub">Administration</span>
+          <img src="/branding/seal.png" alt="" />
+          <span>
+            <span className="brand-name">AIECCE</span>
+            <span className="brand-sub">Administration</span>
+          </span>
         </div>
         <nav aria-label="Main">
           <NavLink to="/" end>
