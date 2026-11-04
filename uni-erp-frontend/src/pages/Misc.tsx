@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { useParams } from 'react-router-dom'
-import { api } from '../api.ts'
+import { api, getToken } from '../api.ts'
 import MasterTable from '../components/MasterTable.tsx'
 import { errMsg, fmtDate } from '../format.ts'
 import { GROUPS, MISC } from '../modules.ts'
+import { useSessions } from '../lookups.ts'
+import { KIND_LABEL } from '../templates.ts'
+import type { PrintTemplate, TemplateKind } from '../templates.ts'
 
 interface CourseType {
   _id: string
@@ -463,6 +466,115 @@ function Roles() {
   )
 }
 
+const blankTpl = { kind: 'certificate' as TemplateKind, name: '', session: '', course: '', dx: '0', dy: '0' }
+
+// Head office uploads a full-page image per document type; optionally limited to one session and/or course.
+function PrintTemplates() {
+  const { sessions } = useSessions()
+  const [courses, setCourses] = useState<Course[]>([])
+  const [rows, setRows] = useState<PrintTemplate[]>([])
+  const [form, setForm] = useState(blankTpl)
+  const [file, setFile] = useState<File | null>(null)
+  const [editId, setEditId] = useState<string | null>(null)
+  const [error, setError] = useState('')
+  const set = (k: keyof typeof blankTpl, v: string) => setForm((f) => ({ ...f, [k]: v }))
+
+  const load = useCallback(() => {
+    api<PrintTemplate[]>('/templates').then(setRows).catch((e) => setError(errMsg(e)))
+  }, [])
+  useEffect(load, [load])
+  useEffect(() => { api<Course[]>('/masters/courses').then(setCourses).catch(() => undefined) }, [])
+
+  const reset = () => { setForm(blankTpl); setFile(null); setEditId(null) }
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault()
+    setError('')
+    if (!editId && !file) return setError('Choose the template image first')
+    const fd = new FormData()
+    if (!editId) fd.append('kind', form.kind)
+    fd.append('name', form.name)
+    fd.append('session', form.session)
+    fd.append('course', form.course)
+    fd.append('dx', form.dx)
+    fd.append('dy', form.dy)
+    if (file) fd.append('image', file)
+    try {
+      const res = await fetch(editId ? `/api/templates/${editId}` : '/api/templates', { method: editId ? 'PUT' : 'POST', headers: { Authorization: `Bearer ${getToken()}` }, body: fd })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.message ?? 'Upload failed')
+      reset()
+      load()
+    } catch (err) {
+      setError(errMsg(err))
+    }
+  }
+
+  const toggle = (t: PrintTemplate) =>
+    api(`/templates/${t._id}`, { method: 'PUT', body: { active: !t.active } }).then(load).catch((e) => setError(errMsg(e)))
+  const remove = (t: PrintTemplate) => {
+    if (!window.confirm(`Delete the template "${t.name}"? Printing falls back to the next best template or the built-in design.`)) return
+    api(`/templates/${t._id}`, { method: 'DELETE' }).then(load).catch((e) => setError(errMsg(e)))
+  }
+
+  return (
+    <section className="panel">
+      <p className="hint pad">
+        Upload the blank design (jpg or png, up to 8 MB, A4 portrait for certificates and statements) and choose where it applies. For each print the most specific
+        template wins: session and course, then course, then session, then one set for everything. With none, the built-in design is used.
+      </p>
+      <form className="toolbar" onSubmit={submit}>
+        <select required disabled={Boolean(editId)} value={form.kind} onChange={(e) => set('kind', e.target.value)} aria-label="Document type">
+          {(Object.keys(KIND_LABEL) as TemplateKind[]).map((k) => (
+            <option key={k} value={k}>{KIND_LABEL[k]}</option>
+          ))}
+        </select>
+        <input required placeholder="Template name" aria-label="Template name" value={form.name} onChange={(e) => set('name', e.target.value)} />
+        <select value={form.session} onChange={(e) => set('session', e.target.value)} aria-label="Session">
+          <option value="">All sessions</option>
+          {sessions.map((x) => <option key={x}>{x}</option>)}
+        </select>
+        <select value={form.course} onChange={(e) => set('course', e.target.value)} aria-label="Course">
+          <option value="">All courses</option>
+          {courses.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}
+        </select>
+        <label>Right (mm) <input type="number" step="0.5" style={{ width: 64 }} value={form.dx} onChange={(e) => set('dx', e.target.value)} /></label>
+        <label>Down (mm) <input type="number" step="0.5" style={{ width: 64 }} value={form.dy} onChange={(e) => set('dy', e.target.value)} /></label>
+        <input type="file" accept="image/jpeg,image/png" aria-label="Template image" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+        <span>
+          <button className="btn-save" type="submit">{editId ? 'Save template' : 'Upload template'}</button>{' '}
+          {editId && <button type="button" className="btn-quiet" onClick={reset}>Cancel</button>}
+        </span>
+      </form>
+      {editId && <p className="hint pad">Choose a new image only if you want to replace the current one.</p>}
+      <Notice error={error} />
+      <table className="grid">
+        <thead>
+          <tr><th>Preview</th><th>Document</th><th>Name</th><th>Session</th><th>Course</th><th>Status</th><th>Action</th></tr>
+        </thead>
+        <tbody>
+          {rows.map((t) => (
+            <tr key={t._id}>
+              <td><a href={t.image} target="_blank" rel="noreferrer"><img src={t.image} alt={t.name} style={{ height: 48, border: '1px solid #ccc' }} /></a></td>
+              <td>{KIND_LABEL[t.kind]}</td>
+              <td>{t.name}</td>
+              <td>{t.session || 'All'}</td>
+              <td>{t.course?.name ?? 'All'}</td>
+              <td>{t.active ? 'On' : 'Off'}</td>
+              <td>
+                <button className="btn-mod" onClick={() => { setEditId(t._id); setFile(null); setForm({ kind: t.kind, name: t.name, session: t.session, course: t.course?._id ?? '', dx: String(t.dx), dy: String(t.dy) }) }}>Modify</button>{' '}
+                <button className="btn-quiet" onClick={() => toggle(t)}>{t.active ? 'Switch off' : 'Switch on'}</button>{' '}
+                <button className="btn-quiet" onClick={() => remove(t)}>Delete</button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {rows.length === 0 && <p className="empty-note">No templates uploaded. Printing uses the built-in designs.</p>}
+    </section>
+  )
+}
+
 export default function Misc() {
   const { name = '' } = useParams()
   return (
@@ -471,6 +583,7 @@ export default function Misc() {
       {name === 'Course Type' && <CourseTypes />}
       {name === 'Course Details' && <Courses />}
       {name === 'Subject Details' && <Subjects />}
+      {name === 'Print Templates' && <PrintTemplates />}
       {name === 'User Role' && <Roles />}
       {name === 'Financial year' && <FinancialYears />}
       {name === 'State' && <States />}

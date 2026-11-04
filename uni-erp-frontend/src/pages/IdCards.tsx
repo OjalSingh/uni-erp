@@ -1,3 +1,4 @@
+import { pickTemplate, useTemplates } from '../templates.ts'
 import Watermark from '../components/Watermark.tsx'
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '../api.ts'
@@ -20,7 +21,7 @@ interface Card {
   image?: string
   session: string
   center: { code: string; name: string }
-  course: { name: string }
+  course: { _id: string; name: string }
 }
 interface CenterOpt {
   _id: string
@@ -29,6 +30,8 @@ interface CenterOpt {
 }
 
 export default function IdCards() {
+  const templates = useTemplates()
+  const tpl = (c: Card) => pickTemplate(templates, 'id-card', c.session, c.course?._id)
   const { user } = useAuth()
   const { sessions, current, loaded } = useSessions()
   const [session, setSession] = useState('')
@@ -92,13 +95,13 @@ export default function IdCards() {
       <div className="id-grid">
         {cards.map((c) => (
           <Selectable key={c._id} on={!skip.includes(c._id)} onToggle={() => toggle(c._id)} label={`${c.name} (${c.enrollNo})`}>
-            <article className="idcard2 wm-host">
-              <Watermark />
-              <div className="id2-head">
+            <article className={`idcard2 wm-host ${tpl(c) ? 'template' : ''}`} style={tpl(c) ? { backgroundImage: `url(${tpl(c)?.image})` } : undefined}>
+              <Watermark className="pre" />
+              <div className="id2-head pre">
                 <b>{INSTITUTE_NAME}</b>
                 <small>Regd. by Govt. of NCT, New Delhi</small>
               </div>
-              <div className="id2-title">Identity Card {c.session}</div>
+              <div className="id2-title pre">Identity Card {c.session}</div>
               <div className="id2-row">
                 <span>Enrollment No <b>{c.enrollNo}</b></span>
                 <span>Centre Code <b>{c.center?.code}</b></span>
